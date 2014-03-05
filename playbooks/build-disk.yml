@@ -1,0 +1,221 @@
+---
+
+- name: Build disk
+  hosts: ec2
+  user: ubuntu
+  sudo: yes
+  gather_facts: True
+
+  vars:
+    vyos_iso_url: http://mirror.vyos.net/iso/release/1.0.2/vyos-1.0.2-amd64.iso
+    vyos_iso_sha256: 4a85566a554231758e2d1a9afd501bf523846230f11f238aa267e93eb98518d8
+    vyos_iso_destination: /tmp/vyos.iso
+
+    CD_ROOT: /mnt/cdrom
+    CD_SQUASH_ROOT: /mnt/cdsquash
+    SQUASHFS_IMAGE: "{{ CD_ROOT }}/live/filesystem.squashfs"
+
+    # The base install drive
+    INSTALL_DRIVE: /dev/xvdf
+
+    ROOT_OFFSET: 64S # Set to 1024S if EBS volume size > 10 GB
+    ROOT_FSTYPE: ext4
+    ROOT_PARTITION: "{{ INSTALL_DRIVE }}1" # The install partition
+
+    WRITE_ROOT: /mnt/wroot
+    IMAGE_NAME: 1.0.2
+    READ_ROOT: /mnt/squashfs
+    INSTALL_ROOT: /mnt/inst_root
+
+  tasks:
+    # ---- Set up the specified ISO release ----
+    - name: Download VyOS ISO release
+      get_url: url={{ vyos_iso_url }} dest={{ vyos_iso_destination }} sha256sum={{ vyos_iso_sha256 }}
+
+    - name: Mount ISO
+      mount: name={{ CD_ROOT }} src={{ vyos_iso_destination }} fstype=iso9660 opts=loop,ro state=mounted
+
+    - name: Verify checksums of all the files in the ISO image
+      command: chdir={{ CD_ROOT }} md5sum -c md5sum.txt
+      changed_when: False
+
+    - name: Mount squashfs image from ISO
+      mount: name={{ CD_SQUASH_ROOT }} src={{ SQUASHFS_IMAGE }} fstype=squashfs opts=loop,ro state=mounted
+
+    # ---- Prepare EBS disk ----
+    - name: Check if EBS disk has already been modified by this playbook
+      shell: parted --script {{ INSTALL_DRIVE }} print || true
+      register: parted_print
+      changed_when: False
+
+    - name: Create a disk label
+      command: parted --script {{ INSTALL_DRIVE }} mklabel msdos
+      when: "parted_print is defined and
+            parted_print.stdout.startswith('Error: {{ INSTALL_DRIVE }}: unrecognised disk label')"
+
+    ### INVESTIGATE ###
+    ### ROOT_OFFSET="1024S" # 512K align for SSD etc
+    ### ROOT_OFFSET="64S"   # 32K align if disk is small (< 10000mb), then don't waste space aligning
+    ### Sources:
+    ### install-get-partition L675
+    ### install-functions L141
+    ### install-get-partition L737
+    ### alignment is not optimal https://stackoverflow.com/questions/10519486/valid-arguments-for-parted
+    ### Warning: The resulting partition is not properly aligned for best performance.
+    ### https://unix.stackexchange.com/questions/38164/create-partition-aligned-using-parted
+    ### for optimal do this parted -s -a optimal /dev/drive mkpart primary 0% 100%
+    ### (64 sectors == 32K bytes)
+
+    ### NEED TO LOOK AT WHY START IS NOT == 1 HERE
+    ### on vyos result:
+    ### /dev/sda1               1        6097     4194272   83  Linux
+    ### on ubuntu result:
+    ### /dev/xvdb1   *          64     8388607     4194272   83  Linux
+
+    - name: Make a root partition using the full disk and 32K alignment
+      command: parted --script --align optimal {{ INSTALL_DRIVE }} mkpart primary {{ ROOT_OFFSET }} 100%
+      when: parted_print is defined and
+            parted_print.stdout.find('primary') == -1
+
+    - name: Create a filesystem on root partition
+      filesystem: fstype={{ ROOT_FSTYPE }} device={{ ROOT_PARTITION }}
+
+    - name: Make {{ INSTALL_DRIVE }} bootable
+      command: parted --script {{ INSTALL_DRIVE }} set 1 boot
+      when: parted_print is defined and
+            parted_print.stdout.find('boot') == -1
+
+    - name: Mount root partition
+      mount: name={{ WRITE_ROOT }} src={{ ROOT_PARTITION }} fstype={{ ROOT_FSTYPE }} state=mounted
+
+    # ---- Install image from ISO ----
+    - name: Create {{ WRITE_ROOT }} directories
+      file: path={{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/live-rw state=directory
+      register: RW_DIR
+
+    - name: Copy squashfs image from ISO to root partition
+      command: cp -p {{ SQUASHFS_IMAGE }} {{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/{{ IMAGE_NAME }}.squashfs
+               creates={{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/{{ IMAGE_NAME }}.squashfs
+
+    - name: Copy boot files (kernel and initrd images) from ISO to root partition
+      shell: find {{ CD_SQUASH_ROOT }}/boot -maxdepth 1  \( -type f -o -type l \) -exec cp -dp {} {{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/ \;
+             creates={{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/vmlinuz
+
+    - name: Mount squashfs image from root partition
+      mount: name={{ READ_ROOT }} src={{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/{{ IMAGE_NAME }}.squashfs fstype=squashfs opts=loop,ro state=mounted
+
+    - name: Set up union root for post installation tasks
+      mount: name={{ INSTALL_ROOT }} src=overlayfs fstype=overlayfs opts=noatime,upperdir={{ RW_DIR.path }},lowerdir={{ READ_ROOT }} state=mounted
+
+    # ---- Post image installation tasks ----
+
+    ## ---- VyOS configuration ----
+    - name: Make sure that config partition marker exists
+      command: touch {{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config creates={{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config
+
+    - name: Copy default config file to config directory
+      command: chroot --userspec=root:vyattacfg {{ INSTALL_ROOT }} cp /opt/vyatta/etc/config.boot.default /opt/vyatta/etc/config/config.boot
+               creates={{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+
+    - name: Change permissions on the new config file
+      file: path={{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot mode=0775
+
+    ### ---- Modify config to meet AWS EC2 AMI requirements ----
+    ### This section is not idempotent yet!
+    - name: Add interface eth0 and set address to dhcp
+      command: sed -i '/interfaces {/ a
+               \   ethernet eth0 {\n
+               \       address dhcp\n
+               \   }
+               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+
+    - name: Add service ssh and disable-password-authentication
+      command: sed -i '/system {/ i
+               service {\n
+               \   ssh {\n
+               \       disable-password-authentication\n
+               \       port 22\n
+               \   }\n}
+               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+
+    # Should not change to hvc0 because it doesn't work
+    # - name: Change system device console to hvc0
+    #   command: sed -i '/device ttyS0 {/ c\
+    #            \       device hvc0 {
+    #            ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+
+    - name: Set system host-name to VyOS-AMI
+      command: sed -i '/login {/ i\
+               \   host-name VyOS-AMI
+               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+
+    - name: Change system login user vyos encrypted-password to '*'
+      command: sed -i '/encrypted-password/ c\
+               \               encrypted-password "*"
+               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+
+    ## ---- Install GRUB boot loader ----
+    - name: Create GRUB directory
+      file: path={{ WRITE_ROOT }}/boot/grub state=directory
+
+    # Check on EC2 what fdisk -l states as /dev/sda or /dev/xvda and maybe
+    # Change this from template to command echo
+    # - name: Configure GRUB device map
+    #   template: src=templates/boot/grub/device.map.j2 dest={{ WRITE_ROOT }}/boot/grub/device.map mode=0644
+    # on ec2 result without template (hd0)  /dev/xvdf change to /dev/xvda
+
+    # It is necessary to mount and bind /dev, /proc, /sys and /boot in order to execute grub-install
+    # and install GRUB correctly within the {{ INSTALL_DRIVE }} using chroot
+    - name: Mount and bind /dev /proc /sys and {{ WRITE_ROOT }}/boot to {{ INSTALL_ROOT }}
+      shell: mount --bind /dev {{ INSTALL_ROOT }}/dev &&
+             mount --bind /proc {{ INSTALL_ROOT }}/proc &&
+             mount --bind /sys {{ INSTALL_ROOT }}/sys &&
+             mount --bind {{ WRITE_ROOT }} {{ INSTALL_ROOT }}/boot
+
+    - name: Install GRUB in the boot sector of {{ INSTALL_DRIVE }}
+      command: chroot {{ INSTALL_ROOT }} grub-install --no-floppy --root-directory=/boot {{ INSTALL_DRIVE }}
+               creates={{ INSTALL_ROOT }}/boot/grub/grubenv
+
+    - name: Configure GRUB for AWS EC2
+      template: src=templates/boot/grub/grub.cfg.j2 dest={{ WRITE_ROOT }}/boot/grub/grub.cfg mode=0644
+
+    ## ---- Add AWS EC2 AMI extras ----
+    - name: Copy ec2-fetch-ssh-public-key init script to {{ INSTALL_ROOT }}
+      copy: src=files/etc/init.d/ec2-fetch-ssh-public-key dest={{ INSTALL_ROOT }}/etc/init.d/ec2-fetch-ssh-public-key mode=0755
+
+    - name: Enable ec2-fetch-ssh-public-key init script
+      command: chroot {{ INSTALL_ROOT }} insserv ec2-fetch-ssh-public-key --default
+
+    # disable tty
+    # add user-data
+
+    ## ---- MDADM config??? ----
+    # mdadm if no raid shouldn't install-postinst-new L238 be AUTOSTART=false as DAEMON=false
+
+    ## ---- Setup fstab ----
+    # Switch from shell to copy module using content=''
+    - name: Configure fstab for tmpfs
+      shell: echo 'tmpfs /var/run tmpfs nosuid,nodev 0 0' > {{ INSTALL_ROOT }}/etc/fstab
+
+    # ---- Unmount all mounts ----
+    - name: Unmount {{ INSTALL_ROOT }}/boot
+      mount: name={{ INSTALL_ROOT }}/boot src={{ WRITE_ROOT }} fstype=none state=unmounted
+
+    - name: Unmount {{ INSTALL_ROOT }}/sys, {{ INSTALL_ROOT }}/proc, {{ INSTALL_ROOT }}/dev
+      mount: name={{ INSTALL_ROOT }}/{{ item }} src=/{{ item }} fstype=none state=unmounted
+      with_items: [ 'sys', 'proc', 'dev' ]
+
+    - name: Unmount {{ INSTALL_ROOT }}
+      mount: name={{ INSTALL_ROOT }} src=overlayfs fstype=overlayfs state=unmounted
+
+    - name: Unmount {{ READ_ROOT }}
+      mount: name={{ READ_ROOT }} src={{ WRITE_ROOT }}/boot/{{ IMAGE_NAME }}/{{ IMAGE_NAME }}.squashfs fstype=squashfs state=unmounted
+
+    - name: Unmount {{ WRITE_ROOT }}
+      mount: name={{ WRITE_ROOT }} src={{ ROOT_PARTITION }} fstype={{ ROOT_FSTYPE }} state=unmounted
+
+    - name: Unmount {{ CD_SQUASH_ROOT }}
+      mount: name={{ CD_SQUASH_ROOT }} src={{ SQUASHFS_IMAGE }} fstype=squashfs state=unmounted
+
+    - name: Unmount {{ CD_ROOT }}
+      mount: name={{ CD_ROOT }} src={{ vyos_iso_destination }} fstype=iso9660 state=unmounted

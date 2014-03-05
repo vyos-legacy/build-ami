@@ -1,0 +1,23 @@
+---
+# playbook: vyos-build-ami.yml
+# Main entry point in vyos-build-ami playbook
+
+
+# ---- Provision instance ----
+- include: provision-instance.yml
+
+
+# ---- Build disk ----
+- include: build-disk.yml
+
+
+# ---- Build AMI ----
+- include: build-ami.yml
+
+
+# ---- Cleanup ----
+- include: cleanup.yml
+
+
+# ---- Release AMI ----
+# - include: release-ami.yml

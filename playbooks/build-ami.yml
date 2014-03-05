@@ -1,0 +1,61 @@
+---
+
+- name: Build AMI
+  hosts: local
+  connection: local
+  gather_facts: False
+
+  vars:
+    snapshot_description: VyOS AMI (HVM) 1.0.2
+
+    ami_name: VyOS AMI (HVM) 1.0.2
+    ami_description: The VyOS AMI is an EBS-backed, HVM image. It is an open-source Linux-based network operating system that provides software-based network routing, firewall, and VPN functionality.
+    ami_architecture: x86_64
+    ami_virtualization_type: hvm
+    ami_root_device_name: /dev/xvda
+
+  tasks:
+    - name: Get volume id of EBS disk built by build-disk.yml playbook
+      command: aws ec2 describe-volumes
+               --filters Name=attachment.instance-id,Values={{ instance_id.stdout }}
+               --filters Name=attachment.device,Values=/dev/sdf
+               --query 'Volumes[*].VolumeId'
+      register: volume_id
+
+    - name: Create a snapshot of the EBS volume
+      command: aws ec2 create-snapshot
+               --volume-id {{ volume_id.stdout }}
+               --description '{{ snapshot_description }}'
+               --query 'SnapshotId'
+      register: snapshot_id
+
+    - name: Wait for the snapshot to enter the "completed" state
+      command: aws ec2 describe-snapshots
+               --snapshot-ids {{ snapshot_id.stdout }}
+               --query 'Snapshots[*].State'
+      register: snapshot_state
+      until: snapshot_state.stdout == "completed"
+      retries: 15
+      delay: 20
+
+    # Use aws-cli register-image to create an Amazon EBS-backed AMI from a
+    # snapshot of a root device volume
+    - name: Register AMI from
+      command: aws ec2 register-image
+               --name '{{ ami_name }}'
+               --description '{{ ami_description }}'
+               --architecture {{ ami_architecture }}
+               --root-device-name {{ ami_root_device_name }}
+               --block-device-mappings '[{"DeviceName":"{{ ami_root_device_name }}","Ebs":{"SnapshotId":"{{ snapshot_id.stdout }}"}}]'
+               --virtualization-type {{ ami_virtualization_type }}
+               --sriov-net-support simple
+      register: ami_image_id
+
+    - name: Wait for the AMI to enter the "available" status
+      command: aws ec2 describe-images
+               --image-ids {{ ami_image_id.stdout }}
+               --query 'Images[*].State'
+      register: ami_image_state
+      until: ami_image_state.stdout == "available"
+      retries: 6
+      delay: 20

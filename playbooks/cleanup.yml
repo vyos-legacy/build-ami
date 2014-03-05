@@ -1,0 +1,32 @@
+---
+
+- name: Cleanup
+  hosts: local
+  connection: local
+  gather_facts: False
+
+  vars:
+    security_group_name: vyos-build-ami
+    key_pair_name: vyos-build-ami
+    key_pair_file: "files/ssh-keys/{{ key_pair_name }}.pem"
+
+  tasks:
+    - name: Terminate the instance
+      command: aws ec2 terminate-instances
+               --instance-ids {{ instance_id.stdout }}
+               --query 'TerminatingInstances[*].CurrentState.Name'
+      register: instance_state
+      until: instance_state.stdout == "terminated"
+      retries: 15
+      delay: 20
+
+    - name: Delete security group
+      command: aws ec2 delete-security-group --group-name {{ security_group_name }}
+
+    - name: Delete SSH key pair
+      command: aws ec2 delete-key-pair --key-name {{ key_pair_name }}
+
+    - name: Delete SSH private key file
+      command: rm -f {{ key_pair_file }}
+
+    # - name: Remove instance SSH host key from known_hosts

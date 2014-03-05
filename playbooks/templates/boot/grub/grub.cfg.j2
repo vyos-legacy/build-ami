@@ -1,0 +1,7 @@
+set default=0
+set timeout=0
+
+menuentry "VyOS AMI (HVM) {{ IMAGE_NAME }}" {
+  linux /boot/{{ IMAGE_NAME }}/vmlinuz boot=live quiet vyatta-union=/boot/{{ IMAGE_NAME }} console=ttyS0
+  initrd /boot/{{ IMAGE_NAME }}/initrd.img
+}
