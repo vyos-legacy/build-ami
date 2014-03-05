@@ -18,6 +18,9 @@
 
   tasks:
     # ---- Configure AWS account ----
+    - name: Make sure that files/ssh-keys directory exists
+      file: path=files/ssh-keys state=directory
+
     - name: Create an SSH key pair
       shell: aws ec2 create-key-pair
              --key-name {{ key_pair_name }}
