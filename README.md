@@ -185,7 +185,7 @@ Coming soon...
 
 ## Contact
 
-[hydrajump] (https://github.com/hydajump)
+[hydrajump] (https://github.com/hydrajump)
 [@hydrajump] (https://twitter.com/hydrajump)
 
 
