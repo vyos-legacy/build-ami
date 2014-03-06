@@ -7,4 +7,4 @@
 # Playbooks are located in 'playbooks/' directory by default and have an .yml
 # extension.
 
-ansible-playbook playbooks/vyos-build-ami.yml -i hosts --private-key=files/ssh-keys/vyos-build-ami.pem
+ansible-playbook playbooks/vyos-build-ami.yml -i hosts --private-key=playbooks/files/ssh-keys/vyos-build-ami.pem
