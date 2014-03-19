@@ -18,7 +18,6 @@
     # The base install drive
     INSTALL_DRIVE: /dev/xvdf
 
-    ROOT_OFFSET: 64S # Set to 1024S if EBS volume size > 10 GB
     ROOT_FSTYPE: ext4
     ROOT_PARTITION: "{{ INSTALL_DRIVE }}1" # The install partition
 
@@ -53,27 +52,8 @@
       when: "parted_print is defined and
             parted_print.stdout.startswith('Error: {{ INSTALL_DRIVE }}: unrecognised disk label')"
 
-    ### INVESTIGATE ###
-    ### ROOT_OFFSET="1024S" # 512K align for SSD etc
-    ### ROOT_OFFSET="64S"   # 32K align if disk is small (< 10000mb), then don't waste space aligning
-    ### Sources:
-    ### install-get-partition L675
-    ### install-functions L141
-    ### install-get-partition L737
-    ### alignment is not optimal https://stackoverflow.com/questions/10519486/valid-arguments-for-parted
-    ### Warning: The resulting partition is not properly aligned for best performance.
-    ### https://unix.stackexchange.com/questions/38164/create-partition-aligned-using-parted
-    ### for optimal do this parted -s -a optimal /dev/drive mkpart primary 0% 100%
-    ### (64 sectors == 32K bytes)
-
-    ### NEED TO LOOK AT WHY START IS NOT == 1 HERE
-    ### on vyos result:
-    ### /dev/sda1               1        6097     4194272   83  Linux
-    ### on ubuntu result:
-    ### /dev/xvdb1   *          64     8388607     4194272   83  Linux
-
-    - name: Make a root partition using the full disk and 32K alignment
-      command: parted --script --align optimal {{ INSTALL_DRIVE }} mkpart primary {{ ROOT_OFFSET }} 100%
+    - name: Make a root partition using the full disk and optimal alignment
+      command: parted --script --align optimal {{ INSTALL_DRIVE }} mkpart primary 0% 100%
       when: parted_print is defined and
             parted_print.stdout.find('primary') == -1
 
