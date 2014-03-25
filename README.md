@@ -1,4 +1,4 @@
-# vyos-build-ami
+# vyos-build-ami [![Build Status](https://travis-ci.org/hydrajump/vyos-build-ami.svg?branch=master)](https://travis-ci.org/hydrajump/vyos-build-ami)
 
 **`vyos-build-ami` is a fully automated build system for VyOS AMIs (Amazon Machine Images)**
 
@@ -178,15 +178,16 @@ VyOS AMIs built, tested and released.
 
 Have fun ;)
 
-## How Does It Work?
+## How It Works
 
 Coming soon...
 
 
 ## Contact
 
-[hydrajump] (https://github.com/hydrajump)
-[@hydrajump] (https://twitter.com/hydrajump)
+[hydrajump](https://github.com/hydrajump)
+
+[@hydrajump](https://twitter.com/hydrajump)
 
 
 ## License
