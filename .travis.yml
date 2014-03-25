@@ -1,0 +1,10 @@
+language: python
+python: 2.7
+install:
+  - pip install awscli
+  - pip install ansible
+before_script:
+  - aws --version
+  - ansible --version
+script:
+  - ansible-playbook --inventory-file=hosts playbooks/vyos-build-ami.yml --syntax-check
