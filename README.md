@@ -33,7 +33,7 @@ I've built this project using Ansible, which offers a number of advantages over 
 
 A quick comparison between running a VyOS AMI and the commercial Vyatta VSE AMI.
 
-- Region: US East (Virginia)
+- Region: N. Virginia (us-east-1)
 - Comparable instance type for each AMI
 - 4 GB EBS volume
 - 1 month run time ~730 hours
@@ -42,23 +42,23 @@ A quick comparison between running a VyOS AMI and the commercial Vyatta VSE AMI.
 Vyatta VSE AMI m1.medium (PV)
 
 Software: $0.60/Hour
-Instance m1.medium (1 vCPU, 2 ECU, 3.75 GiB Memory): $0.120/Hour
+Instance m1.medium (1 vCPU, 2 ECU, 3.75 GiB Memory): $0.087/Hour
 Storage Standard EBS: $0.05/ GB /Month
 
-Total = ( $0.60 + $0.120 ) * 730 + ( $0.05 * 4 ) = $525.8/Month
+Total = ( $0.60 + $0.087 ) * 730 + ( $0.05 * 4 ) = $501.71/Month
 ```
 
 ```shell
 VyOS AMI m3.medium (HVM)
 
 Software: FREE
-Instance m3.medium (1 vCPU, 3 ECU, 3.75 GiB Memory): $0.113/hour
+Instance m3.medium (1 vCPU, 3 ECU, 3.75 GiB Memory): $0.070/Hour
 Storage Standard EBS: $0.05/ GB /Month
 
-Total = ( FREE + $0.113 ) * 730 + ( $0.05 * 4 ) = $82.69/Month
+Total = ( FREE + $0.070 ) * 730 + ( $0.05 * 4 ) = $51.3/Month
 ```
 
-Note: Calculations do not account for bandwidth costs. Also, instance rates and specifications as of 5/3/2014.
+Note: Calculations do not account for data transfer costs. Amazon EC2 prices effective April 1st, 2014.
 
 
 ## Requirements
