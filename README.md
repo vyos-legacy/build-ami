@@ -94,6 +94,9 @@ http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#ins
 
 Install the AWS CLI Using pip (Windows, Linux, OS X, or Unix)
 http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#install-with-pip
+
+Install the AWS CLI Using the Homebrew package manager on Mac OS X
+brew install awscli
 ```
 
 ### 3. Test the AWS CLI installation
