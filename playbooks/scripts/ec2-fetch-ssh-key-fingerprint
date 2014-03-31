@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+# ec2-fetch-ssh-key-fingerprint
+#
+# Fetches an EC2 instance's SSH public key fingerprint
+#
+# Using the AWS CLI this script fetches an SSH key fingerprint
+# from the console output of an EC2 instance. The fingerprint is
+# then passed to ssh-known-host, which automatically adds the
+# instance's SSH public key to your known_hosts file.
+#
+# Usage:
+#   1. chmod +x ec2-fetch-ssh-key-fingerprint
+#   2. ./ec2-fetch-ssh-key-fingerprint i-1a2345bc rsa
+#
+#
+# Inspired by Colin Percival's work,
+#   http://www.daemonology.net/blog/2012-01-16-automatically-populating-ssh-known-hosts.html
+#
+# Written: 26 Mar 2014
+# Updated: 31 Mar 2014
+#
+# Homepage: https://github.com/hydrajump/
+# Author: hydrajump <wave@hydrajump.com>
+
+# Usage
+if [[ "$#" -lt 1 ]]; then
+cat <<EOF
+Usage: ec2-fetch-ssh-key-fingerprint <Instance ID> <Key Type>
+Example: ec2-fetch-ssh-key-fingerprint i-1a2345bc rsa
+Fetches an EC2 instance's SSH public key fingerprint.
+EOF
+exit 1
+fi
+
+# User supplied input
+instance_id="$1"
+key_type="$2"
+
+# The user can provide the following valid key types: rsa, ecdsa or dsa
+declare -A key_types=( [rsa]=1 [ecdsa]=1 [dsa]=1 )
+
+if ! [[ "$key_type" && "${key_types[$key_type]}" ]]; then
+  echo "ERROR: Please provide a valid key type: 'rsa', 'ecdsa' or 'dsa'"
+  exit 1
+fi
+
+# Check that AWS CLI is installed
+if ! hash aws 2>/dev/null; then
+cat <<EOF
+You need to install the AWS CLI first.
+
+If you're on a Mac and using Homebrew:
+  brew install awscli
+
+For other operating systems and more information:
+  http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html
+EOF
+exit 1
+fi
+
+instance_hostname=$(aws ec2 describe-instances \
+                      --instance-id "$instance_id" \
+                      --query 'Reservations[*].Instances[*].PublicDnsName')
+
+if [[ -z "$instance_hostname" ]]; then
+  echo "ERROR: Please check the instance id '$instance_id'"
+  exit 1
+fi
+
+# Poll until the console output is available
+while ! grep -q ^ec2: <<<"$instance_console_output"; do
+  instance_console_output=$(aws ec2 get-console-output --instance-id "$instance_id")
+  sleep 10
+done
+
+# Extract SSH host key fingerprint from instance console output
+key_fingerprint=$(grep ^ec2: <<<"$instance_console_output" \
+                    | awk '/BEGIN SSH HOST KEY FINGERPRINTS/, /END SSH HOST KEY FINGERPRINTS/' \
+                    | grep --invert-match 'HOST KEY FINGERPRINTS' \
+                    | grep --ignore-case "$key_type" \
+                    | awk '{print $3}')
+
+if [[ -n "$key_fingerprint" ]]; then
+  echo "SSH public key of type '$key_type' found for '$instance_hostname'"
+else
+  echo "ERROR: SSH public key of type '$key_type' does not exist for '$instance_hostname'"
+  exit 1
+fi
+
+# Pass the key fingerprint to the ssh-add-known-host script,
+# which will verify and add the instance's SSH public key to known_hosts.
+./ssh-add-known-host "$instance_hostname" "$key_type" "$key_fingerprint"
+
+exit 0

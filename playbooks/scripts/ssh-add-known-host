@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+# ssh-add-known-host
+#
+# Verify and add a host's SSH public key to known_hosts
+#
+# Compares a trusted known host's SSH public key fingerprint with
+# a fingerprint retrieved directly from the host. If the fingerprints
+# match, the host's SSH public key is added to known_hosts.
+#
+# Usage:
+#   1. chmod +x ssh-add-known-host
+#   2. ./ssh-add-known-host host.example.com rsa xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx
+#
+#
+# Inspired by Colin Percival's work,
+#   http://www.daemonology.net/blog/2012-01-16-automatically-populating-ssh-known-hosts.html
+#
+# Written: 26 Mar 2014
+# Updated: 31 Mar 2014
+#
+# Homepage: https://github.com/hydrajump/
+# Author: hydrajump <wave@hydrajump.com>
+
+# Usage
+if [[ "$#" -lt 1 ]]; then
+cat <<EOF
+Usage: ssh-add-known-host <Hostname> <Key Type> <Key Fingerprint>
+Example: ssh-add-known-host host.example.com rsa xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx
+Verify and add a host's SSH public key to known_hosts.
+EOF
+exit 1
+fi
+
+# User supplied input
+hostname="$1"
+key_type="$2"
+key_fingerprint="$3"
+
+# The user can provide the following valid key types: rsa, ecdsa or dsa
+declare -A key_types=( [rsa]=1 [ecdsa]=1 [dsa]=1 )
+
+if ! [[ "$key_type" && "${key_types[$key_type]}" ]]; then
+  echo "ERROR: Please provide a valid key type: 'rsa', 'ecdsa' or 'dsa'"
+  exit 1
+fi
+
+if [[ ! "$key_fingerprint" ]]; then
+  echo "ERROR: Please provide the '$key_type' key fingerprint"
+  exit 1
+fi
+
+# Get SSH public key from host and save it hashed to a temporary file
+host_public_key=$(mktemp "/tmp/key.$key_type.XXXXXXXXX") || exit 1
+ssh-keyscan -H -t "$key_type" "$hostname" > "$host_public_key" 2>/dev/null
+
+if [[ -s "$host_public_key" ]]; then
+  # Get SSH host key fingerprint from instance's public key
+  actual_fingerprint=$(ssh-keygen -lf "$host_public_key" | awk '{print $2}')
+
+  # Compare the user provided key fingerprint with the
+  # actual fingerprint retrieved from the host
+  expected_fingerprint="$key_fingerprint"
+  if [[ "$actual_fingerprint" == "$expected_fingerprint" ]]; then
+    echo "SSH host key fingerprints match!"
+
+    # Remove all keys belonging to hostname from known_hosts.
+    # We don't have to do this, but it prevents duplicate keys.
+    # Also, it ensures that we don't have any unhashed entries
+    # for the given host, as it will be added hashed in the next step.
+    ssh-keygen -R "$hostname" 2>/dev/null
+
+    cat "$host_public_key" >> ~/.ssh/known_hosts
+    echo "SSH public key added to known_hosts"
+  else
+    echo "ERROR: SSH host key fingerprints do not match!"
+  fi
+else
+  echo "ERROR: SSH public key of type '$key_type' does not exist for '$hostname'"
+fi
+
+# Clean up
+trap 'rm -f $host_public_key' EXIT
+
+exit 0
