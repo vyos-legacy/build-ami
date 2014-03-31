@@ -53,7 +53,7 @@ fi
 # Reverse DNS lookup to get the IP address of the hostname.
 # If the user provided an IP address instead of a hostname
 # "$ip_address" will be empty.
-ip_address=$(host "$hostname" | awk '/has address/ {print $4}')
+ip_address=$(host "$hostname" | awk '/has address/ {print $4;exit}')
 
 # Create a temporary file for the host's public key
 host_public_key=$(mktemp "/tmp/key.$key_type.XXXXXXXXX") || exit 1
