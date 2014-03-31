@@ -6,7 +6,7 @@
 #
 # Using the AWS CLI this script fetches an SSH key fingerprint
 # from the console output of an EC2 instance. The fingerprint is
-# then passed to ssh-known-host, which automatically adds the
+# then passed to ssh-add-known-host, which automatically adds the
 # instance's SSH public key to your known_hosts file.
 #
 # Usage:
@@ -71,7 +71,7 @@ fi
 # Poll until the console output is available
 while ! grep -q ^ec2: <<<"$instance_console_output"; do
   instance_console_output=$(aws ec2 get-console-output --instance-id "$instance_id")
-  sleep 10
+  sleep 20
 done
 
 # Extract SSH host key fingerprint from instance console output
@@ -90,6 +90,6 @@ fi
 
 # Pass the key fingerprint to the ssh-add-known-host script,
 # which will verify and add the instance's SSH public key to known_hosts.
-./ssh-add-known-host "$instance_hostname" "$key_type" "$key_fingerprint"
+scripts/ssh-add-known-host "$instance_hostname" "$key_type" "$key_fingerprint"
 
 exit 0
