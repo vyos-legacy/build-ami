@@ -1,10 +1,20 @@
 language: python
 python: 2.7
+
+env:
+  - secure: "YWCq0TvhYmukLLfJdVm38lzD7J3NY/zY8juEwOQ+STYH+8s3WwAjMEU9MQkVvFWButCN5lSJxViP8+S27XPX/1nyy+vkFUQb8mbBITh3/u6jR0DCb/PbjZ9h+ShUmFsA3iYQ0BFXCgSI+lMx3f72EZdDmkyqMWkz9OcSWhJ6jFU="
+  - secure: "CVS49Qp71eYFXNnplV5g7QQ4fo/F1+IhGf+L3hbk0lwI0tMnA017fBKCdl+m3yzhQAVX48ihWMku4THfKUK+g9VZiFPhsaMvNLar5VxjKtzs10IqPr+FsSo4T5HyDkRVsOOeYqA+ZlH8h5nfVwd3ec1ObST9H/Q7DtRXBGsydMA="
+  - AWS_DEFAULT_REGION=us-east-1
+  - AWS_DEFAULT_OUTPUT=text
+
 install:
   - pip install awscli
   - pip install ansible
+
 before_script:
   - aws --version
   - ansible --version
+
 script:
-  - ansible-playbook --inventory-file=hosts playbooks/vyos-build-ami.yml --syntax-check
+  - ansible-playbook --inventory-file=hosts --syntax-check playbooks/vyos-build-ami.yml
+  - ./vyos-build-ami.sh
