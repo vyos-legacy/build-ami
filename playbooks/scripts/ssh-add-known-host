@@ -50,9 +50,20 @@ if [[ ! "$key_fingerprint" ]]; then
   exit 1
 fi
 
-# Get SSH public key from host and save it hashed to a temporary file
+# Reverse DNS lookup to get the IP address of the hostname.
+# If the user provided an IP address instead of a hostname
+# "$ip_address" will be empty.
+ip_address=$(host "$hostname" | awk '/has address/ {print $4}')
+
+# Create a temporary file for the host's public key
 host_public_key=$(mktemp "/tmp/key.$key_type.XXXXXXXXX") || exit 1
-ssh-keyscan -H -t "$key_type" "$hostname" > "$host_public_key" 2>/dev/null
+
+# Get SSH public key from host and save it to the temporary file
+if [[ -z "$ip_address" ]]; then
+  ssh-keyscan -t "$key_type" "$hostname" > "$host_public_key" 2>/dev/null
+else
+  ssh-keyscan -t "$key_type" "$hostname","$ip_address" > "$host_public_key" 2>/dev/null
+fi
 
 if [[ -s "$host_public_key" ]]; then
   # Get SSH host key fingerprint from instance's public key
@@ -64,11 +75,10 @@ if [[ -s "$host_public_key" ]]; then
   if [[ "$actual_fingerprint" == "$expected_fingerprint" ]]; then
     echo "SSH host key fingerprints match!"
 
-    # Remove all keys belonging to hostname from known_hosts.
+    # Remove all keys belonging to hostname/ IP address from known_hosts.
     # We don't have to do this, but it prevents duplicate keys.
-    # Also, it ensures that we don't have any unhashed entries
-    # for the given host, as it will be added hashed in the next step.
     ssh-keygen -R "$hostname" 2>/dev/null
+    ssh-keygen -R "$ip_address" 2>/dev/null
 
     cat "$host_public_key" >> ~/.ssh/known_hosts
     echo "SSH public key added to known_hosts"
