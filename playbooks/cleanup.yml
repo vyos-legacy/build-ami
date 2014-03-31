@@ -29,4 +29,5 @@
     - name: Delete SSH private key file
       command: rm -f {{ key_pair_file }}
 
-    # - name: Remove instance SSH host key from known_hosts
+    - name: Remove instance's SSH public key from known_hosts
+      command: ssh-keygen -R {{ instance_dns_name.stdout }}
