@@ -85,6 +85,3 @@
 
     - name: Wait for instance's SSH port to open
       wait_for: host={{ instance_dns_name.stdout }} port=22 delay=10 state=started
-
-    # ---- Bootstrap instance??? ----
-    # Setup /etc/sudoers file for passwordless ssh sudo
