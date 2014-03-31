@@ -12,7 +12,7 @@
 
     security_group_name: vyos-build-ami
 
-    image_id: ami-808675f7 # Ubuntu Server 12.04 LTS (PV) - Free tier eligible
+    image_id: ami-59a4a230 # us-east-1 Ubuntu Server 12.04 LTS (PV) - Free tier eligible
     instance_type: t1.micro # Free tier eligible
     volume_size: 4 # GB
 
@@ -71,34 +71,20 @@
       retries: 6
       delay: 20
 
-    - name: Get the public IP address of the instance
+    - name: Get the public DNS name of the instance
       command: aws ec2 describe-instances
                --instance-id {{ instance_id.stdout }}
-               --query 'Reservations[*].Instances[*].PublicIpAddress'
-      register: instance_public_ip
+               --query 'Reservations[*].Instances[*].PublicDnsName'
+      register: instance_dns_name
 
-    - name: Add instance's public IP address to ansible host group ec2
-      add_host: name={{ instance_public_ip.stdout }} groups=ec2
+    - name: Add instance's public DNS name to ansible host group ec2
+      add_host: name={{ instance_dns_name.stdout }} groups=ec2
 
-    # - name: Get the instance's SSH host keys from console
-    #   shell: aws ec2 get-console-output
-    #          --instance-id i-842b35c7 | scripts/ec2-knownhost 54.72.29.205
-    #          # perl -ne 'print if /BEGIN SSH .* KEYS/../END SSH .* KEYS/' | tr -d '\n\r'
-    #   register: result
-    #   until: result
-    #   retries: 6
-    #   delay: 20
-    #   tags: test2
-
-    # - debug: "var=result.stdout.startswith('ec2: -----BEGIN SSH HOST KEY FINGERPRINTS-----\r\nec2: ')"
-    # - debug: var=result.stdout
-    #   tags: test2
-
-    # - name: Extract ssh host keys from console get-console-output
-    #   script: scripts/ec2-knownhost {{ instance_public_ip }}
+    - name: Add instance's SSH public key to known_hosts
+      script: scripts/ec2-fetch-ssh-key-fingerprint {{ instance_id.stdout }} rsa
 
     - name: Wait for instance's SSH port to open
-      wait_for: host={{ instance_public_ip.stdout }} port=22 delay=10 state=started
+      wait_for: host={{ instance_dns_name.stdout }} port=22 delay=10 state=started
 
     # ---- Bootstrap instance??? ----
     # Setup /etc/sudoers file for passwordless ssh sudo
