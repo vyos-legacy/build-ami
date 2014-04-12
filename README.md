@@ -1,14 +1,16 @@
 # vyos-build-ami [![Build Status](https://travis-ci.org/hydrajump/vyos-build-ami.svg?branch=master)](https://travis-ci.org/hydrajump/vyos-build-ami)
 
-**`vyos-build-ami` is a fully automated build system for VyOS AMIs (Amazon Machine Images)**
+>vyos-build-ami is a fully automated build system for VyOS AMIs (Amazon Machine Images)
 
-`vyos-build-ami` is a fully automated build system for VyOS AMIs defined in [Ansible](http://ansible.com/) playbooks. The build process is self-contained in an EC2 instance launched by the playbooks and the resulting AMIs are never booted prior to release. This is no different from installing VyOS via a release ISO image on a non-AWS (Amazon Web Services) platform.
+>Builds the official [VyOS AMIs](https://aws.amazon.com/marketplace/pp/B00JK5UPF6) available on the AWS Marketplace
+
+vyos-build-ami is a fully automated build system for VyOS AMIs defined in [Ansible](http://ansible.com/) playbooks. The build process is self-contained in an EC2 instance launched by the playbooks and the resulting AMIs are never booted prior to release. This is no different from installing VyOS via a release ISO image on a non-AWS (Amazon Web Services) platform.
 
 ## Background and Motivation
 
-[VyOS](http://vyos.net) is a fork of Vyatta, which came in two flavours: open-source and commerical. Unfortunately, the only official AMI available on the [AWS Marketplace](https://aws.amazon.com/marketplace/) is the latter. Until now...
+[VyOS](http://vyos.net) is a fork of Vyatta, which came in two flavours: open-source and commerical. Unfortunately, the only official AMI available on the [AWS Marketplace](https://aws.amazon.com/marketplace/) is the latter. Until now...**UPDATE 11th April 2014 the official VyOS AMIs are now [available](https://aws.amazon.com/marketplace/pp/B00JK5UPF6).**
 
-Initially, I created a [recipe]() to build a VyOS AMI based on [@j3tm0t0's](https://twitter.com/j3tm0t0) [work](http://d.hatena.ne.jp/j3tm0t0/20131026/1382797766) with some linguistic help from Google Translate. However, the process required manual intervention and is not suitable for building and releasing dependable AMIs.
+Initially, I created a [recipe]() to build a VyOS AMI based on [j3tm0t0's blog post](http://d.hatena.ne.jp/j3tm0t0/20131026/1382797766) with some linguistic help from Google Translate. However, the process required manual intervention and is not suitable for building and releasing dependable AMIs.
 
 `vyos-build-ami` is a culmination of the lessons I learnt from creating my manual build recipe and a lot of head bashing. The build process is 100% automated through all phases: building, testing and releasing. In addition, build parameters are easily set in a single configuration file to accomodate new VyOS releases.
 
