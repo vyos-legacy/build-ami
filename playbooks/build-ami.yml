@@ -8,7 +8,7 @@
   vars:
     snapshot_description: VyOS AMI (HVM) 1.0.5
 
-    ami_name: VyOS AMI (HVM) 1.0.5
+    ami_name: VyOS (HVM) 1.0.5
     ami_description: The VyOS AMI is an EBS-backed, HVM image. It is an open-source Linux-based network operating system that provides software-based network routing, firewall, and VPN functionality.
     ami_architecture: x86_64
     ami_virtualization_type: hvm
