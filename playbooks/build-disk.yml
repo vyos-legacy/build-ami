@@ -7,8 +7,8 @@
   gather_facts: True
 
   vars:
-    vyos_iso_url: http://mirror.vyos.net/iso/release/1.0.2/vyos-1.0.2-amd64.iso
-    vyos_iso_sha256: 4a85566a554231758e2d1a9afd501bf523846230f11f238aa267e93eb98518d8
+    vyos_iso_url: http://mirror.vyos.net/iso/release/1.0.5/vyos-1.0.5-amd64.iso
+    vyos_iso_sha256: 6473b108fc193b23e9d657e248144b68964290c71e5fe312113bc7574917919d
     vyos_iso_destination: /tmp/vyos.iso
 
     CD_ROOT: /mnt/cdrom
@@ -22,7 +22,7 @@
     ROOT_PARTITION: "{{ INSTALL_DRIVE }}1" # The install partition
 
     WRITE_ROOT: /mnt/wroot
-    IMAGE_NAME: 1.0.2
+    IMAGE_NAME: 1.0.5
     READ_ROOT: /mnt/squashfs
     INSTALL_ROOT: /mnt/inst_root
 
