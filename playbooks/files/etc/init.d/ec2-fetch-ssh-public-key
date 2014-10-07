@@ -15,6 +15,17 @@
 # Based on http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/building-shared-amis.html#public-amis-install-credentials
 #          https://github.com/andsens/bootstrap-vz/blob/master/providers/ec2/assets/init.d/ec2-get-credentials
 
+# Ensure that with the invocation below, we never recurse indefinitely
+if [ $SHLVL -gt 100 ]; then
+     echo "Setting effective group id is failing in $0. Aborting recursion."
+     exit 2
+fi
+# The cli-shell-api has a bug (VyOS Bug 300) and must not be run as root:
+if [ $(groups | awk '{print $1}') != 'vyattacfg' ]; then
+     sg vyattacfg $0
+     exit
+fi
+
 . /lib/lsb/init-functions
 
 : ${vyatta_env:=/etc/default/vyatta}
