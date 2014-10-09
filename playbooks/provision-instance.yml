@@ -8,7 +8,7 @@
 
   vars:
     key_pair_name: vyos-build-ami
-    key_pair_file: "{{ lookup('env','PWD') }}files/ssh-keys/{{ key_pair_name }}.pem"
+    key_pair_file: "{{ lookup('env','PWD') }}/playbooks/files/ssh-keys/{{ key_pair_name }}.pem"
 
     security_group_name: vyos-build-ami
 
@@ -19,7 +19,7 @@
   tasks:
     # ---- Configure AWS account ----
     - name: Make sure that files/ssh-keys directory exists
-      file: path={{ lookup('env','PWD') }}files/ssh-keys state=directory
+      file: path={{ lookup('env','PWD') }}/playbooks/files/ssh-keys state=directory
 
     - name: Create an SSH key pair
       shell: aws ec2 create-key-pair
