@@ -35,6 +35,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision :file, source: '~/.gitconfig', destination: '/home/vagrant/.gitconfig' if File.exist?(ENV['HOME'] + '/.gitconfig')
   config.vm.provision :file, source: '~/.vimrc', destination: '/home/vagrant/.vimrc' if File.exist?(ENV['HOME'] + '/.vimrc')
+  config.vm.provision :file, source: '~/.vim', destination: '/home/vagrant/.vim' if File.exist?(ENV['HOME'] + '/.vim')
   config.vm.provision "shell", inline: $script
 end
 
