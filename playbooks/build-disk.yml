@@ -7,8 +7,7 @@
   gather_facts: True
 
   vars:
-    vyos_iso_url: http://mirror.vyos.net/iso/release/1.0.5/vyos-1.0.5-amd64.iso
-    vyos_iso_sha256: 6473b108fc193b23e9d657e248144b68964290c71e5fe312113bc7574917919d
+    vyos_iso_url: http://dev.packages.vyos.net/iso/helium/amd64/VyOS-livecd-1410100026-af6433f-amd64.iso
     vyos_iso_destination: /tmp/vyos.iso
 
     CD_ROOT: /mnt/cdrom
@@ -28,7 +27,21 @@
   tasks:
     # ---- Set up the specified ISO release ----
     - name: Download VyOS ISO release
-      get_url: url={{ vyos_iso_url }} dest={{ vyos_iso_destination }} sha256sum={{ vyos_iso_sha256 }}
+      get_url: url={{ vyos_iso_url }} dest={{ vyos_iso_destination }}
+
+    - name: Fetch VyOS ISO GPG signature
+      get_url: url={{ vyos_iso_url }}.asc dest={{ vyos_iso_destination }}.asc status_code=200,404,403
+      register: gpg_uri
+
+    - debug: var=gpg_uri
+
+    - name: Install SO3 Group GPG key
+      command: gpg --install http://vyos.net/so3group_maintainers.key
+      when: gpg_uri.status == 200
+    
+    - name: Validate ISO GPG signature
+      command: gpg --verify {{ vyos_iso_destination }}.asc {{ vyos_iso_destination }}
+      when: gpg_uri.status == 200
 
     - name: Mount ISO
       mount: name={{ CD_ROOT }} src={{ vyos_iso_destination }} fstype=iso9660 opts=loop,ro state=mounted
