@@ -7,7 +7,7 @@
   gather_facts: True
 
   vars:
-    vyos_iso_url: http://dev.packages.vyos.net/iso/helium/amd64/VyOS-livecd-1410100026-af6433f-amd64.iso
+    vyos_iso_url: http://0.de.mirrors.vyos.net/iso/release/1.1.0/vyos-1.1.0-amd64.iso
     vyos_iso_destination: /tmp/vyos.iso
 
     CD_ROOT: /mnt/cdrom
@@ -36,7 +36,7 @@
     - debug: var=gpg_uri
 
     - name: Install SO3 Group GPG key
-      command: gpg --install http://vyos.net/so3group_maintainers.key
+      command: gpg --import http://vyos.net/so3group_maintainers.key
       when: gpg_uri.status == 200
     
     - name: Validate ISO GPG signature
