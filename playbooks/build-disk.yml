@@ -7,8 +7,10 @@
   gather_facts: True
 
   vars:
-    vyos_iso_url: http://0.de.mirrors.vyos.net/iso/release/1.1.0/vyos-1.1.0-amd64.iso
-    vyos_iso_destination: /tmp/vyos.iso
+    vyos_iso_url: http://dev.packages.vyos.net/iso/helium/amd64/VyOS-livecd-1410110000-af6433f-amd64.iso
+    vyos_iso_local: /tmp/vyos.iso
+    so3group_key_url: http://vyos.net/so3group_maintainers.key
+    so3group_key_local: /tmp/so3group_maintainers.key
 
     CD_ROOT: /mnt/cdrom
     CD_SQUASH_ROOT: /mnt/cdsquash
@@ -27,24 +29,27 @@
   tasks:
     # ---- Set up the specified ISO release ----
     - name: Download VyOS ISO release
-      get_url: url={{ vyos_iso_url }} dest={{ vyos_iso_destination }}
+      get_url: url={{ vyos_iso_url }} dest={{ vyos_iso_local }}
 
     - name: Fetch VyOS ISO GPG signature
-      uri: url={{ vyos_iso_url }}.asc dest={{ vyos_iso_destination }}.asc status_code=200,404,403
+      uri: url={{ vyos_iso_url }}.asc dest={{ vyos_iso_local }}.asc status_code=200,404,403
       register: gpg_uri
 
     - debug: var=gpg_uri
 
+    - name: Fetch SO3 Group GPG key
+      get_url: url={{ so3group_key_url}} dest={{ so3group_key_local }}
+
     - name: Install SO3 Group GPG key
-      command: gpg --import http://vyos.net/so3group_maintainers.key
+      command: gpg --import {{ so3group_key_local }}
       when: gpg_uri.status == 200
     
     - name: Validate ISO GPG signature
-      command: gpg --verify {{ vyos_iso_destination }}.asc {{ vyos_iso_destination }}
+      command: gpg --verify {{ vyos_iso_local }}.asc {{ vyos_iso_local }}
       when: gpg_uri.status == 200
 
     - name: Mount ISO
-      mount: name={{ CD_ROOT }} src={{ vyos_iso_destination }} fstype=iso9660 opts=loop,ro state=mounted
+      mount: name={{ CD_ROOT }} src={{ vyos_iso_local }} fstype=iso9660 opts=loop,ro state=mounted
 
     - name: Verify checksums of all the files in the ISO image
       command: chdir={{ CD_ROOT }} md5sum -c md5sum.txt
@@ -215,4 +220,4 @@
       mount: name={{ CD_SQUASH_ROOT }} src={{ SQUASHFS_IMAGE }} fstype=squashfs state=unmounted
 
     - name: Unmount {{ CD_ROOT }}
-      mount: name={{ CD_ROOT }} src={{ vyos_iso_destination }} fstype=iso9660 state=unmounted
+      mount: name={{ CD_ROOT }} src={{ vyos_iso_local }} fstype=iso9660 state=unmounted
