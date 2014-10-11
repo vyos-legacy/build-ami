@@ -30,7 +30,7 @@
       get_url: url={{ vyos_iso_url }} dest={{ vyos_iso_destination }}
 
     - name: Fetch VyOS ISO GPG signature
-      get_url: url={{ vyos_iso_url }}.asc dest={{ vyos_iso_destination }}.asc status_code=200,404,403
+      uri: url={{ vyos_iso_url }}.asc dest={{ vyos_iso_destination }}.asc status_code=200,404,403
       register: gpg_uri
 
     - debug: var=gpg_uri
