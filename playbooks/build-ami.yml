@@ -16,6 +16,7 @@
     ami_root_device_name: /dev/xvda
 
   tasks:
+    # FIXME: handle issue with multiple volumes returned from previous unclean runs
     - name: Get volume id of EBS disk built by build-disk.yml playbook
       command: aws ec2 describe-volumes
                --filters Name=attachment.instance-id,Values={{ instance_id.stdout }}
@@ -41,6 +42,7 @@
 
     # Use aws-cli register-image to create an Amazon EBS-backed AMI from a
     # snapshot of a root device volume
+    # TODO: handle case where AMI name already exists
     - name: Register AMI from
       command: aws ec2 register-image
                --name '{{ ami_name }}'

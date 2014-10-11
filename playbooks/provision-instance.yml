@@ -8,6 +8,8 @@
 
   vars:
     key_pair_name: vyos-build-ami
+    # FIXME: I think the below can be done cleaner than this, or more reliably with
+    # some sort of ansible defined variable
     key_pair_file: "{{ lookup('env','PWD') }}/playbooks/files/ssh-keys/{{ key_pair_name }}.pem"
 
     security_group_name: vyos-build-ami
@@ -18,6 +20,8 @@
 
   tasks:
     # ---- Configure AWS account ----
+    # FIXME: always delete both the local and remote key if they exist, to
+    # be able to operate after unclean previous runs
     - name: Make sure that files/ssh-keys directory exists
       file: path={{ lookup('env','PWD') }}/playbooks/files/ssh-keys state=directory
 
@@ -41,7 +45,8 @@
       when: describe_security_groups is defined and
             describe_security_groups.stdout.find('{{ security_group_name }}') == -1
 
-    # Restrict the security group inbound IP address to ansible control machine?
+    # TODO: Restrict the security group inbound IP address to ansible control machine?
+    # TODO: Allow ICMP, too, for manual status monitoring...(Chinese Internet sucks!)
     - name: Add a rule to the security group that allows inbound SSH traffic
       command: aws ec2 authorize-security-group-ingress
                --group-name {{ security_group_name }}
@@ -63,6 +68,7 @@
       register: bootstrap_ami_id
 
     # ---- Launch EC2 instance ----
+    # TODO: tag it with a name
     - name: Launch an EC2 instance
       command: aws ec2 run-instances
                --image-id {{ bootstrap_ami_id.stdout }}
@@ -94,5 +100,6 @@
     - name: Add instance's SSH public key to known_hosts
       script: scripts/ec2-fetch-ssh-key-fingerprint {{ instance_id.stdout }} rsa
 
+    # FIXME: this is unnecessary given the above step does it also?
     - name: Wait for instance's SSH port to open
       wait_for: host={{ instance_dns_name.stdout }} port=22 delay=10 state=started

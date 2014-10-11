@@ -120,7 +120,7 @@
       file: path={{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot mode=0775
 
     ### ---- Modify config to meet AWS EC2 AMI requirements ----
-    ### This section is not idempotent yet!
+    ### FIXME: This section is not idempotent yet!
     - name: Add interface eth0 and set address to dhcp
       command: sed -i '/interfaces {/ a
                \   ethernet eth0 {\n
@@ -157,7 +157,7 @@
     - name: Create GRUB directory
       file: path={{ WRITE_ROOT }}/boot/grub state=directory
 
-    # Check on EC2 what fdisk -l states as /dev/sda or /dev/xvda and maybe
+    # TODO: Check on EC2 what fdisk -l states as /dev/sda or /dev/xvda and maybe
     # Change this from template to command echo
     # - name: Configure GRUB device map
     #   template: src=templates/boot/grub/device.map.j2 dest={{ WRITE_ROOT }}/boot/grub/device.map mode=0644
@@ -178,21 +178,19 @@
     - name: Configure GRUB for AWS EC2
       template: src=templates/boot/grub/grub.cfg.j2 dest={{ WRITE_ROOT }}/boot/grub/grub.cfg mode=0644
 
-    ## ---- Add AWS EC2 AMI extras ----
+    # Install ec2 init script. This isn't actually used, but left here for easy development of this script.
     - name: Copy ec2-fetch-ssh-public-key init script to {{ INSTALL_ROOT }}
       copy: src=files/etc/init.d/ec2-fetch-ssh-public-key dest={{ INSTALL_ROOT }}/etc/init.d/ec2-fetch-ssh-public-key mode=0755
+      when: False
 
-    - name: Enable ec2-fetch-ssh-public-key init script
-      command: chroot {{ INSTALL_ROOT }} insserv ec2-fetch-ssh-public-key --default
-
-    # disable tty
+    # TODO: disable tty
     # add user-data
 
-    ## ---- MDADM config??? ----
+    ## TODO: ---- MDADM config??? ----
     # mdadm if no raid shouldn't install-postinst-new L238 be AUTOSTART=false as DAEMON=false
 
     ## ---- Setup fstab ----
-    # Switch from shell to copy module using content=''
+    # TODO: Switch from shell to copy module using content=''
     - name: Configure fstab for tmpfs
       shell: echo 'tmpfs /var/run tmpfs nosuid,nodev 0 0' > {{ INSTALL_ROOT }}/etc/fstab
 
