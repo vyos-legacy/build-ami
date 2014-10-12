@@ -7,7 +7,7 @@
   gather_facts: True
 
   vars:
-    vyos_iso_url: http://dev.packages.vyos.net/iso/helium/amd64/VyOS-livecd-1410110000-af6433f-amd64.iso
+    vyos_iso_url: "{{ iso }}"
     vyos_iso_local: /tmp/vyos.iso
     so3group_key_url: http://vyos.net/so3group_maintainers.key
     so3group_key_local: /tmp/so3group_maintainers.key
