@@ -1,0 +1,3 @@
+[submodule "playbooks/filter_plugins/ansible-string-split-filter"]
+	path = playbooks/filter_plugins/ansible-string-split-filter
+	url = https://github.com/timraasveld/ansible-string-split-filter.git
