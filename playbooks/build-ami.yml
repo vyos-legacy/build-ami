@@ -54,10 +54,14 @@
                --sriov-net-support simple
       register: ami_image_id
 
-    - name: Tag AMI with ISO URL
+    - name: Find local git revision
+      command: git rev-parse HEAD
+      register: local_git_revision
+
+    - name: Tag AMI with details of build settings
       command: aws ec2 create-tags
                --resources {{ ami_image_id.stdout }}
-               --tags "Key=iso,Value={{ iso }}"
+               --tags Key=iso_url,Value={{ iso }} Key=iso,Value={{ iso | split('/') | last }} Key=vyos-build-ami-git-rev,Value={{ local_git_revision.stdout }} Key=build_user,Value={{ ansible_user_id }} Key=build_controller_host,Value={{ ansible_hostname }}
 
     - name: Wait for the AMI to enter the "available" status
       command: aws ec2 describe-images
