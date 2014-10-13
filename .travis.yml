@@ -18,4 +18,3 @@ before_script:
 
 script:
   - ansible-playbook --inventory-file=hosts --syntax-check playbooks/vyos-build-ami.yml
-  - ./vyos-build-ami.sh
