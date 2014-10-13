@@ -20,3 +20,4 @@ addons:
       secure: HH1Ep+i7rLvUX3ULwFehWN4zLB3kESkYPT4+53EkZ6UNwqQeD19+ynaydj0oKuvoCvrufnRnAxQ4+/sua8wku2yEtRCHRPxarNiKI4cT1ELvHZVrXvTcbveszyKXJ1hrVFnU+SWKyRCYfA69t/vDoyHgwZ58SRTRisif2PWCZyo=
     secret: 
       secure: JEte/NuONsV3/m9HE3+SDNAaK5vJKpW0aR7solaPB7bNz3rWR2JCU5Svop8noTZrA0GFDFoHLG8UhuJ8a8mZOeeZQnwwq9tad8Q8lJqMhuv0NNfZxhAvgSCbkwyUylbwTKR7i9gpizmBAS+8gu3YrNaRcXiD/AyujADj+XcIH3U=
+    debug: true
