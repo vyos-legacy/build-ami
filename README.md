@@ -1,4 +1,4 @@
-# vyos-build-ami [![Build Status](https://travis-ci.org/vyos/vyos-build-ami.svg?branch=master)](https://travis-ci.org/vyos/vyos-build-ami)
+# vyos-build-ami [![Build Status](https://travis-ci.org/vyos/build-ami.svg?branch=master)](https://travis-ci.org/vyos/build-ami)
 
 >vyos-build-ami is a fully automated build system for VyOS AMIs (Amazon Machine Images)
 
