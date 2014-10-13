@@ -15,7 +15,7 @@ install:
 python: 2.7
 addons: 
   artifacts: 
-    bucket: vyos-build-ami
+    bucket: vyos-build-ami-artifacts
     key: 
       secure: HH1Ep+i7rLvUX3ULwFehWN4zLB3kESkYPT4+53EkZ6UNwqQeD19+ynaydj0oKuvoCvrufnRnAxQ4+/sua8wku2yEtRCHRPxarNiKI4cT1ELvHZVrXvTcbveszyKXJ1hrVFnU+SWKyRCYfA69t/vDoyHgwZ58SRTRisif2PWCZyo=
     secret: 
