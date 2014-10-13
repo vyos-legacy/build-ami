@@ -3,6 +3,14 @@
 set -u
 set -e
 
+cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+if [ -d env ]; then
+    set +u
+    source env/bin/activate
+    set -u
+fi
+
 nightly_iso_dir=http://dev.packages.vyos.net/iso/helium/amd64/
 nightly_iso_dir_formatted="${nightly_iso_dir}?F=0"
 
