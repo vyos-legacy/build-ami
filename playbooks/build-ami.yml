@@ -19,8 +19,9 @@
     # FIXME: handle issue with multiple volumes returned from previous unclean runs
     - name: Get volume id of EBS disk built by build-disk.yml playbook
       command: aws ec2 describe-volumes
-               --filters Name=attachment.instance-id,Values={{ instance_id.stdout }}
-               --filters Name=attachment.device,Values=/dev/sdf
+               --filters
+               Name=attachment.instance-id,Values={{ instance_id.stdout }}
+               Name=attachment.device,Values=/dev/sdf
                --query 'Volumes[*].VolumeId'
       register: volume_id
 
@@ -58,10 +59,25 @@
       command: git rev-parse HEAD
       register: local_git_revision
 
-    - name: Tag AMI with details of build settings
+    - name: Tag AMI with ISO information
       command: aws ec2 create-tags
                --resources {{ ami_image_id.stdout }}
-               --tags Key=iso_url,Value={{ iso }} Key=iso,Value={{ iso | split('/') | last }} Key=vyos-build-ami-git-rev,Value={{ local_git_revision.stdout }} Key=build_user,Value={{ ansible_user_id }} Key=build_controller_host,Value={{ ansible_hostname }}
+               --tags
+               Key=iso_url,Value={{ iso }}
+               Key=iso,Value={{ iso | split('/') | last }}
+    
+    - name: Tag AMI with git revision
+      command: aws ec2 create-tags
+               --resources {{ ami_image_id.stdout }}
+               --tags
+               Key=vyos-build-ami-git-rev,Value={{ local_git_revision.stdout }}
+    
+    - name: Tag AMI with machine identifiers
+      command: aws ec2 create-tags
+               --resources {{ ami_image_id.stdout }}
+               --tags
+              Key=build_user,Value={{ ansible_user_id }}
+              Key=build_controller_host,Value={{ ansible_hostname }}
 
     - name: Wait for the AMI to enter the "available" status
       command: aws ec2 describe-images
