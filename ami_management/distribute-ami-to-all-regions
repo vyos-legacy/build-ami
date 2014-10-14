@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <source region> <ami id>"
+    exit 1
+fi
+
+set -u
+set -e
+
+source_region=$1
+ami_id=$2
+
+name=$(aws ec2 describe-images --image-ids $ami_id --query 'Images[*].Name')
+echo "AMI: $name"
+
+for region in $(aws ec2 describe-regions --output text --query "Regions[*].RegionName"); do
+    if [ "$region" == "$source_region" ]; then
+        continue
+    fi
+    echo -n "$region: "
+    new_ami_id=$(aws ec2 copy-image --region $region --source-region $source_region --source-image-id $ami_id --name "$name")
+    aws ec2 modify-image-attribute --region $region --image-id $new_ami_id --launch-permission "{\"Add\": [{\"Group\":\"all\"}]}"
+done
