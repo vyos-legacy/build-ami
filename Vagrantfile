@@ -10,11 +10,8 @@ apt-get install -y vim git ack-grep
 
 pip install virtualenv
 
-rm -rf env
-virtualenv env
-source env/bin/activate
-pip install ansible
-pip install awscli
+./bootstrap-virtualenv
+
 echo "source env/bin/activate" > ~vagrant/.bash_profile
 echo "cd /vagrant" >> ~vagrant/.bash_profile
 

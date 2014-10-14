@@ -1,3 +1,4 @@
 doc/
 playbooks/files/ssh-keys/
 .vagrant
+env
