@@ -14,7 +14,11 @@
 
     security_group_name: vyos-build-ami
 
-    bootstrap_host_ami_search: ubuntu-precise-12.04-amd64-server-20140217.1
+    # bootstrap_host_ami_search: ubuntu-precise-12.04-amd64-server-20140217.1
+    # bootstrap_host_ami_search: ubuntu-trusty-14.04-amd64-server-20141125
+    bootstrap_host_ami_search: ubuntu-precise-12.04-amd64-server-20140927
+    # ubuntu_owner_id: 837727238323
+    ubuntu_owner_id: 837727238323
     instance_type: t1.micro # Free tier eligible
     volume_size: 4 # GB
 
@@ -59,7 +63,7 @@
     # Look up the AMI id to use based on a search
     - name: Look up Ubuntu Precise AMI ID
       command: aws ec2 describe-images
-              --owners 099720109477
+              --owners {{ ubuntu_owner_id }}
               --filters
               "Name=name,Values=*{{ bootstrap_host_ami_search }}*"
               "Name=root-device-type,Values=ebs"
