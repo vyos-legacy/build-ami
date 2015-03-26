@@ -18,7 +18,5 @@ for region in $(aws ec2 describe-regions --output text --query "Regions[*].Regio
     if [ "$region" == "$source_region" ]; then
         continue
     fi
-    echo -n "$region: "
-    new_ami_id=$(aws ec2 copy-image --region $region --source-region $source_region --source-image-id $ami_id --name "$name")
-    aws ec2 modify-image-attribute --region $region --image-id $new_ami_id --launch-permission "{\"Add\": [{\"Group\":\"all\"}]}"
+    ./_distribute-to-single-region $region $source_region $ami_id "$name" &
 done
