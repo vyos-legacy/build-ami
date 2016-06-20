@@ -130,7 +130,7 @@ If the test is successful, you will see the help displayed.
 ### 6. Get vyos-build-ami playbooks
 
 ```shell
-$ git clone https://github.com/hydrajump/vyos-build-ami.git
+$ git clone https://github.com/vyos/build-ami.git
 ```
 
 
