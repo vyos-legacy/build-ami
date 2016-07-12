@@ -9,8 +9,8 @@
   vars:
     vyos_iso_url: "{{ iso }}"
     vyos_iso_local: /tmp/vyos.iso
-    so3group_key_url: http://vyos.net/so3group_maintainers.key
-    so3group_key_local: /tmp/so3group_maintainers.key
+    vyos_key_url: http://packages.vyos.net/vyos-release.gpg
+    vyos_key_local: /tmp/vyos-release.gpg
 
     CD_ROOT: /mnt/cdrom
     CD_SQUASH_ROOT: /mnt/cdsquash
@@ -37,11 +37,11 @@
 
     - debug: var=gpg_uri
 
-    - name: Fetch SO3 Group GPG key
-      get_url: url={{ so3group_key_url}} dest={{ so3group_key_local }}
+    - name: Fetch the VyOS release GPG key
+      get_url: url={{ vyos_key_url}} dest={{ vyos_key_local }}
 
-    - name: Install SO3 Group GPG key
-      command: gpg --import {{ so3group_key_local }}
+    - name: Install the VyOS release GPG key
+      command: gpg --import {{ vyos_key_local }}
       when: gpg_uri.status == 200
     
     - name: Validate ISO GPG signature

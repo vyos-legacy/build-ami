@@ -2,7 +2,8 @@
 
 # vyos-build-ami.sh: ansible-playbook wrapper for vyos-build-ami project
 # Copyright 2014 hydrajump <wave@hydrajump.com>
-# Homepage: https://github.com/hydrajump/vyos-build-ami
+# Portions copyright 2015, 2016, VyOS maintainers and contributors <maintainers@vyos.net>
+# Homepage: https://github.com/vyos/vyos-build-ami
 
 # Playbooks are located in 'playbooks/' directory by default and have an .yml
 # extension.
