@@ -5,29 +5,40 @@
   connection: local
   gather_facts: False
 
-  vars:
-    security_group_name: vyos-build-ami
-    key_pair_name: vyos-build-ami
-    key_pair_file: "files/ssh-keys/{{ key_pair_name }}.pem"
-
   tasks:
-    - name: Terminate the instance
-      command: aws ec2 terminate-instances
-               --instance-ids {{ instance_id.stdout }}
-               --query 'TerminatingInstances[*].CurrentState.Name'
-      register: instance_state
-      until: instance_state.stdout == "terminated"
-      retries: 15
-      delay: 20
+    - name: Grab instance IDs
+      ec2_remote_facts:
+        filters:
+          instance-state-name: running
+          "tag:Name": "{{ placeholder }}"
+          "tag:Type": "VyOS"
+        region: "{{ ec2_region }}"
+      register: ec2_instances
 
-    - name: Delete security group
-      command: aws ec2 delete-security-group --group-name {{ security_group_name }}
+    - name: Delete the EC2 Instance
+      ec2:
+        state: absent
+        region: "{{ ec2_region }}"
+        instance_ids: "{{ item.id }}"
+        wait: True
+      ignore_errors: True
+      with_items: "{{ ec2_instances.instances }}"
 
-    - name: Delete SSH key pair
-      command: aws ec2 delete-key-pair --key-name {{ key_pair_name }}
+# # KP
+    - name: Delete key pair
+      ec2_key:
+        name: "{{ key_pair_name }}"
+        state: absent
+        region: "{{ ec2_region }}"
+      ignore_errors: True
 
-    - name: Delete SSH private key file
-      command: rm -f {{ key_pair_file }}
-
-    - name: Remove instance's SSH public key from known_hosts
-      command: ssh-keygen -R {{ instance_dns_name.stdout }}
+# # VPC
+    - name: Delete VPC
+      ec2_vpc:
+        state: absent
+        cidr_block: 10.0.0.0/16
+        resource_tags:
+          Type: vyos
+          Name: "{{ placeholder }}"
+        region: "{{ ec2_region }}"
+      ignore_errors: True
