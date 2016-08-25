@@ -1,6 +1,4 @@
 ---
-
-# The play operates on the local (Ansible control) machine.
 - name: Provision instance
   hosts: local
   connection: local
@@ -87,7 +85,6 @@
             volume_size: "{{ volume_size }}"
             delete_on_termination: True
       register: ec2_instance
-
 
     - name: Add instance's public DNS name to ansible host group ec2
       add_host:

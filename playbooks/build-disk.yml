@@ -1,9 +1,8 @@
 ---
-
 - name: Build disk
   hosts: ec2
   user: ubuntu
-  sudo: yes
+  become: True
   gather_facts: True
 
   vars:
@@ -16,11 +15,8 @@
     CD_SQUASH_ROOT: /mnt/cdsquash
     SQUASHFS_IMAGE: "{{ CD_ROOT }}/live/filesystem.squashfs"
 
-    # The base install drive
-    INSTALL_DRIVE: /dev/xvdf
-
     ROOT_FSTYPE: ext4
-    ROOT_PARTITION: "{{ INSTALL_DRIVE }}1" # The install partition
+    ROOT_PARTITION: "{{ volume_drive }}1" # The install partition
 
     WRITE_ROOT: /mnt/wroot
     READ_ROOT: /mnt/squashfs
@@ -28,10 +24,6 @@
 
   tasks:
     # ---- Set up the specified ISO release ----
-    - name: Download VyOS ISO release
-      get_url:
-        url: "{{ vyos_iso_url }}"
-        dest: "{{ vyos_iso_local }}"
 
     - name: Fetch VyOS ISO GPG signature
       uri:
@@ -40,7 +32,10 @@
         status_code: 200,404,403
       register: gpg_uri
 
-    - debug: var=gpg_uri
+    - name: Download VyOS ISO release
+      get_url:
+        url: "{{ vyos_iso_url }}"
+        dest: "{{ vyos_iso_local }}"
 
     - name: Fetch the VyOS release GPG key
       get_url:
@@ -66,7 +61,7 @@
     - name: Verify checksums of all the files in the ISO image
       command: md5sum -c md5sum.txt
       args:
-        chdir="{{ CD_ROOT }}"
+        chdir: "{{ CD_ROOT }}"
       changed_when: False
 
     - name: Mount squashfs image from ISO
@@ -88,25 +83,27 @@
     # All the parted stuff may be replaced when this PR is merged
     # https://github.com/ansible/ansible-modules-extras/pull/2518
     - name: Check if EBS disk has already been modified by this playbook
-      shell: parted --script {{ INSTALL_DRIVE }} print || true
+      shell: parted --script {{ volume_drive }} print || true
       register: parted_print
       changed_when: False
 
     - name: Create a disk label
-      command: parted --script {{ INSTALL_DRIVE }} mklabel msdos
+      command: parted --script {{ volume_drive }} mklabel msdos
       when: "parted_print is defined and
-            parted_print.stdout.startswith('Error: {{ INSTALL_DRIVE }}: unrecognised disk label')"
+            parted_print.stdout.startswith('Error: {{ volume_drive }}: unrecognised disk label')"
 
     - name: Make a root partition using the full disk and optimal alignment
-      command: parted --script --align optimal {{ INSTALL_DRIVE }} mkpart primary 0% 100%
+      command: parted --script --align optimal {{ volume_drive }} mkpart primary 0% 100%
       when: parted_print is defined and
             parted_print.stdout.find('primary') == -1
 
     - name: Create a filesystem on root partition
-      filesystem: fstype={{ ROOT_FSTYPE }} device={{ ROOT_PARTITION }}
+      filesystem:
+        fstype: "{{ ROOT_FSTYPE }}"
+        device: "{{ ROOT_PARTITION }}"
 
-    - name: Make {{ INSTALL_DRIVE }} bootable
-      command: parted --script {{ INSTALL_DRIVE }} set 1 boot
+    - name: Make {{ volume_drive }} bootable
+      command: parted --script {{ volume_drive }} set 1 boot
       when: parted_print is defined and
             parted_print.stdout.find('boot') == -1
 
@@ -154,7 +151,9 @@
 
     ## ---- VyOS configuration ----
     - name: Make sure that config partition marker exists
-      command: touch {{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config creates={{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config
+      command: touch {{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config
+      args:
+        creates: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config"
 
     - name: Copy default config file to config directory
       command: chroot --userspec=root:vyattacfg {{ INSTALL_ROOT }} cp /opt/vyatta/etc/config.boot.default /opt/vyatta/etc/config/config.boot
@@ -213,15 +212,15 @@
     # on ec2 result without template (hd0)  /dev/xvdf change to /dev/xvda
 
     # It is necessary to mount and bind /dev, /proc, /sys and /boot in order to execute grub-install
-    # and install GRUB correctly within the {{ INSTALL_DRIVE }} using chroot
+    # and install GRUB correctly within the {{ volume_drive }} using chroot
     - name: Mount and bind /dev /proc /sys and {{ WRITE_ROOT }}/boot to {{ INSTALL_ROOT }}
       shell: mount --bind /dev {{ INSTALL_ROOT }}/dev &&
              mount --bind /proc {{ INSTALL_ROOT }}/proc &&
              mount --bind /sys {{ INSTALL_ROOT }}/sys &&
              mount --bind {{ WRITE_ROOT }} {{ INSTALL_ROOT }}/boot
 
-    - name: Install GRUB in the boot sector of {{ INSTALL_DRIVE }}
-      command: chroot {{ INSTALL_ROOT }} grub-install --no-floppy --root-directory=/boot {{ INSTALL_DRIVE }}
+    - name: Install GRUB in the boot sector of {{ volume_drive }}
+      command: chroot {{ INSTALL_ROOT }} grub-install --no-floppy --root-directory=/boot {{ volume_drive }}
       args:
         creates: "{{ INSTALL_ROOT }}/boot/grub/grubenv"
 
