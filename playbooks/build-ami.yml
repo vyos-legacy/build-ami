@@ -16,33 +16,17 @@
     ami_root_device_name: /dev/xvda
 
   tasks:
-    # FIXME: handle issue with multiple volumes returned from previous unclean runs
-    - name: Get volume id of EBS disk built by build-disk.yml playbook
-      command: aws ec2 describe-volumes
-               --filters
-               Name=attachment.instance-id,Values={{ instance_id.stdout }}
-               Name=attachment.device,Values=/dev/sdf
-               --query 'Volumes[*].VolumeId'
-      register: volume_id
-
     - name: Create a snapshot of the EBS volume
-      command: aws ec2 create-snapshot
-               --volume-id {{ volume_id.stdout }}
-               --description '{{ snapshot_description }}'
-               --query 'SnapshotId'
-      register: snapshot_id
-
-    - name: Wait for the snapshot to enter the "completed" state
-      command: aws ec2 describe-snapshots
-               --snapshot-ids {{ snapshot_id.stdout }}
-               --query 'Snapshots[*].State'
-      register: snapshot_state
-      until: snapshot_state.stdout == "completed"
-      retries: 15
-      delay: 20
+      ec2_snapshot:
+        region: "{{ ec2_region }}"
+        device_name: /dev/sdf
+        instance_id: "{{ ec2_instance.instances[0].id }}"
+        description: "{{ snapshot_description }}"
+      register: ec2_snap
 
     # Use aws-cli register-image to create an Amazon EBS-backed AMI from a
-    # snapshot of a root device volume
+    # snapshot of a root device volume. This can't be done with ansible (as
+    # of version 2.1.1.0)
     # TODO: handle case where AMI name already exists
     - name: Register AMI from
       command: aws ec2 register-image
@@ -50,40 +34,26 @@
                --description '{{ ami_description }}'
                --architecture {{ ami_architecture }}
                --root-device-name {{ ami_root_device_name }}
-               --block-device-mappings '[{"DeviceName":"{{ ami_root_device_name }}","Ebs":{"SnapshotId":"{{ snapshot_id.stdout }}"}}]'
+               --block-device-mappings '[{"DeviceName":"{{ ami_root_device_name }}","Ebs":{"SnapshotId":"{{ ec2_snap.snapshot_id }}"}}]'
                --virtualization-type {{ ami_virtualization_type }}
                --sriov-net-support simple
-      register: ami_image_id
+      register: ec2_ami
+
+    - debug: msg="{{ (ec2_ami.stdout | from_json).ImageId}}"
+
+    - name: Tag the AMI
+      ec2_tag:
+        region: "{{ ec2_region }}"
+        resource: "{{ (ec2_ami.stdout | from_json).ImageId }}"
+        tags:
+          iso_url: "{{ iso }}"
+          iso: "{{ iso | basename }}"
+        # vyos-build-ami-git-rev: "{{ local_git_revision.stdout }}"
+          build_user: "{{ ansible_user_id }}"
+          build_controller_host: "{{ ansible_hostname }}"
+
+    - fail:
 
     - name: Find local git revision
       command: git rev-parse HEAD
       register: local_git_revision
-
-    - name: Tag AMI with ISO information
-      command: aws ec2 create-tags
-               --resources {{ ami_image_id.stdout }}
-               --tags
-               Key=iso_url,Value={{ iso }}
-               Key=iso,Value={{ iso | split('/') | last }}
-    
-    - name: Tag AMI with git revision
-      command: aws ec2 create-tags
-               --resources {{ ami_image_id.stdout }}
-               --tags
-               Key=vyos-build-ami-git-rev,Value={{ local_git_revision.stdout }}
-    
-    - name: Tag AMI with machine identifiers
-      command: aws ec2 create-tags
-               --resources {{ ami_image_id.stdout }}
-               --tags
-              Key=build_user,Value={{ ansible_user_id }}
-              Key=build_controller_host,Value={{ ansible_hostname }}
-
-    - name: Wait for the AMI to enter the "available" status
-      command: aws ec2 describe-images
-               --image-ids {{ ami_image_id.stdout }}
-               --query 'Images[*].State'
-      register: ami_image_state
-      until: ami_image_state.stdout == "available"
-      retries: 6
-      delay: 20
