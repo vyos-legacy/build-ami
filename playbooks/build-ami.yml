@@ -30,6 +30,7 @@
     # TODO: handle case where AMI name already exists
     - name: Register AMI from
       command: aws ec2 register-image
+               --region {{ ec2_region }}
                --name '{{ ami_name }}'
                --description '{{ ami_description }}'
                --architecture {{ ami_architecture }}
@@ -51,8 +52,6 @@
         # vyos-build-ami-git-rev: "{{ local_git_revision.stdout }}"
           build_user: "{{ ansible_user_id }}"
           build_controller_host: "{{ ansible_hostname }}"
-
-    - fail:
 
     - name: Find local git revision
       command: git rev-parse HEAD
