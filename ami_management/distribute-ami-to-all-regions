@@ -8,15 +8,15 @@ fi
 set -u
 set -e
 
+script_dir=$(cd $(dirname $0) && pwd)
 source_region=$1
 ami_id=$2
 
-name=$(aws ec2 describe-images --image-ids $ami_id --query 'Images[*].Name')
+name=$(aws ec2 describe-images --output text --region $source_region --image-ids $ami_id --query 'Images[*].Name')
 echo "AMI: $name"
 
 for region in $(aws ec2 describe-regions --output text --query "Regions[*].RegionName"); do
-    if [ "$region" == "$source_region" ]; then
-        continue
+    if [ "$region" != "$source_region" ]; then
+      ${script_dir}/_distribute-to-single-region $region $source_region $ami_id "$name" &
     fi
-    ./_distribute-to-single-region $region $source_region $ami_id "$name" &
 done
