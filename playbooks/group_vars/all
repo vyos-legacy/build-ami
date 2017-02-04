@@ -1,6 +1,6 @@
 key_pair_name: vyos-build-ami
 ec2_region: us-east-1
-temp_folder: .tmp
+temp_folder: /tmp/
 key_pair_file: "{{ temp_folder }}/{{ key_pair_name }}.pem"
 instance_type: t2.medium
 placeholder: vyos-build-ami
