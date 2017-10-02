@@ -38,6 +38,7 @@
                --block-device-mappings '[{"DeviceName":"{{ ami_root_device_name }}","Ebs":{"SnapshotId":"{{ ec2_snap.snapshot_id }}"}}]'
                --virtualization-type {{ ami_virtualization_type }}
                --sriov-net-support simple
+               --output json
       register: ec2_ami
 
     - debug: msg="{{ (ec2_ami.stdout | from_json).ImageId}}"
