@@ -4,7 +4,6 @@ temp_folder: "{{ playbook_dir }}/files/ssh-keys"
 key_pair_file: "{{ temp_folder }}/{{ key_pair_name }}.pem"
 instance_type: t2.medium
 placeholder: vyos-build-ami
-ubuntu_version: ubuntu-trusty-14.04
 volume_size: 4
 volume_drive: /dev/xvdf
 ansible_ssh_private_key_file: "{{ key_pair_file }}"

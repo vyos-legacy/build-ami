@@ -1,7 +1,7 @@
 ---
 - name: Build disk
   hosts: ec2
-  user: ubuntu
+  user: admin
   become: True
   gather_facts: True
 
@@ -23,6 +23,9 @@
     INSTALL_ROOT: /mnt/inst_root
 
   tasks:
+    - name: Load aufs module
+      shell: modprobe aufs
+
     # ---- Set up the specified ISO release ----
 
     - name: Fetch VyOS ISO GPG signature
@@ -30,6 +33,7 @@
         url: "{{ vyos_iso_url }}.asc"
         dest: "{{ vyos_iso_local }}.asc"
         status_code: 200,404,403
+      tags: verify
       register: gpg_uri
 
     - name: Download VyOS ISO release
@@ -41,14 +45,17 @@
       get_url:
         url: "{{ vyos_key_url}}"
         dest: "{{ vyos_key_local }}"
+      tags: verify
 
     - name: Install the VyOS release GPG key
       command: gpg --import {{ vyos_key_local }}
       when: gpg_uri.status == 200
+      tags: verify
 
     - name: Validate ISO GPG signature
       command: gpg --verify {{ vyos_iso_local }}.asc {{ vyos_iso_local }}
       when: gpg_uri.status == 200
+      tags: verify
 
     - name: Mount ISO
       mount:
@@ -79,33 +86,36 @@
     - name: Debug version string as read from ISO
       debug: msg="This is version {{ version_string.stdout }}"
 
-    # ---- Prepare EBS disk ----
-    # All the parted stuff may be replaced when this PR is merged
-    # https://github.com/ansible/ansible-modules-extras/pull/2518
-    - name: Check if EBS disk has already been modified by this playbook
-      shell: parted --script {{ volume_drive }} print || true
-      register: parted_print
-      changed_when: False
+#    - name: Create a disk label
+#      command: parted --script {{ volume_drive }} mklabel msdos
 
-    - name: Create a disk label
-      command: parted --script {{ volume_drive }} mklabel msdos
-      when: "parted_print is defined and
-            parted_print.stdout.startswith('Error: {{ volume_drive }}: unrecognised disk label')"
+#    - name: Make a root partition using the full disk and optimal alignment
+#      command: parted --script --align optimal {{ volume_drive }} mkpart primary 0% 100%
 
-    - name: Make a root partition using the full disk and optimal alignment
-      command: parted --script --align optimal {{ volume_drive }} mkpart primary 0% 100%
-      when: parted_print is defined and
-            parted_print.stdout.find('primary') == -1
+#    - name: Create a filesystem on root partition
+#      filesystem:
+#        fstype: "{{ ROOT_FSTYPE }}"
+#        device: "{{ ROOT_PARTITION }}"
+
+#    - name: Make {{ volume_drive }} bootable
+#     command: parted --script {{ volume_drive }} set 1 boot
+
+    - name: Partition the target drive
+      parted:
+        device: "{{ volume_drive }}"
+        state: present
+        label: msdos
+        number: 1
+        part_type: primary
+        part_start: 0%
+        part_end: 100%
+        align: optimal
+        flags: [boot]
 
     - name: Create a filesystem on root partition
       filesystem:
         fstype: "{{ ROOT_FSTYPE }}"
         device: "{{ ROOT_PARTITION }}"
-
-    - name: Make {{ volume_drive }} bootable
-      command: parted --script {{ volume_drive }} set 1 boot
-      when: parted_print is defined and
-            parted_print.stdout.find('boot') == -1
 
     - name: Mount root partition
       mount:
@@ -142,9 +152,9 @@
     - name: Set up union root for post installation tasks
       mount:
         name: "{{ INSTALL_ROOT }}"
-        src: overlayfs
-        fstype: overlayfs
-        opts: "noatime,upperdir={{ RW_DIR.path }},lowerdir={{ READ_ROOT }}"
+        src: none
+        fstype: aufs
+        opts: "noatime,dirs={{ RW_DIR.path }}=rw:{{ READ_ROOT }}=rr"
         state: mounted
 
     # ---- Post image installation tasks ----

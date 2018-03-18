@@ -35,6 +35,6 @@ ISO_URL=$1
 
 cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-ANSIBLE_ARGS="-e iso=$ISO_URL"
+ANSIBLE_ARGS="-e iso=$ISO_URL --skip-tags verify"
 
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/vyos-build-ami.yml -i hosts --private-key=playbooks/files/ssh-keys/vyos-build-ami.pem $ANSIBLE_ARGS $2
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/vyos-build-ami.yml -vvv -i hosts --private-key=playbooks/files/ssh-keys/vyos-build-ami.pem  $ANSIBLE_ARGS $2
