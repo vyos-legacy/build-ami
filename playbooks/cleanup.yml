@@ -7,7 +7,7 @@
 
   tasks:
     - name: Grab instance IDs
-      ec2_remote_facts:
+      ec2_instance_facts:
         filters:
           instance-state-name: running
           "tag:Name": "{{ placeholder }}"
@@ -19,7 +19,7 @@
       ec2:
         state: absent
         region: "{{ ec2_region }}"
-        instance_ids: "{{ item.id }}"
+        instance_ids: "{{ item.instance_id }}"
         wait: True
       ignore_errors: True
       with_items: "{{ ec2_instances.instances }}"
@@ -32,10 +32,11 @@
         region: "{{ ec2_region }}"
       ignore_errors: True
 
-# # VPC
+# VPC
     - name: Delete VPC
-      ec2_vpc:
+      ec2_vpc_net:
         state: absent
+        name: "{{ placeholder }}"
         cidr_block: 10.0.0.0/16
         resource_tags:
           Type: vyos

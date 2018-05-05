@@ -80,7 +80,8 @@
         state: mounted
 
     - name: Read version string from iso packages
-      shell: cat {{ CD_ROOT }}/live/filesystem.packages | grep ^vyatta-version | awk '{print $2}'
+#      shell: cat {{ CD_ROOT }}/live/filesystem.packages | grep ^vyatta-version | awk '{print $2}'
+      shell: cat {{ CD_SQUASH_ROOT }}/opt/vyatta/etc/version | awk '{print $2}' | tr + -
       register: version_string
 
     - name: Debug version string as read from ISO
@@ -116,6 +117,7 @@
       filesystem:
         fstype: "{{ ROOT_FSTYPE }}"
         device: "{{ ROOT_PARTITION }}"
+        opts: "-L persistence"
 
     - name: Mount root partition
       mount:
@@ -127,9 +129,14 @@
     # ---- Install image from ISO ----
     - name: Create {{ WRITE_ROOT }} directories
       file:
-        path: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/live-rw"
+        path: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/rw"
         state: directory
       register: RW_DIR
+
+    - name: Create the work directory
+      file:
+        path: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/work/work"
+        state: directory
 
     - name: Copy squashfs image from ISO to root partition
       command: cp -p {{ SQUASHFS_IMAGE }} {{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/{{ version_string.stdout }}.squashfs
@@ -137,7 +144,7 @@
        creates: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/{{ version_string.stdout }}.squashfs"
 
     - name: Copy boot files (kernel and initrd images) from ISO to root partition
-      shell: find {{ CD_SQUASH_ROOT }}/boot -maxdepth 1  \( -type f -o -type l \) -exec cp -dp {} {{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/ \;
+      shell: find {{ CD_SQUASH_ROOT }}/boot -maxdepth 1  \( -type f -o -type l \) -print -exec cp -dp {} {{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/ \;
       args:
         creates: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/vmlinuz"
 
@@ -240,13 +247,19 @@
         dest: "{{ WRITE_ROOT }}/boot/grub/grub.cfg"
         mode: 0644
 
+    - name: Create the persistence config
+      template:
+        src: templates/persistence.conf
+        dest: "{{ WRITE_ROOT }}/persistence.conf"
+        mode: 0644
+
     # Install ec2 init script. This isn't actually used, but left here for easy development of this script.
-    - name: Copy ec2-fetch-ssh-public-key init script to {{ INSTALL_ROOT }}
-      copy:
-        src: files/etc/init.d/ec2-fetch-ssh-public-key
-        dest: "{{ INSTALL_ROOT }}/etc/init.d/ec2-fetch-ssh-public-key"
-        mode: 0755
-      when: False
+    #- name: Copy ec2-fetch-ssh-public-key init script to {{ INSTALL_ROOT }}
+    #  copy:
+    #    src: files/etc/init.d/ec2-fetch-ssh-public-key
+    #    dest: "{{ INSTALL_ROOT }}/etc/init.d/ec2-fetch-ssh-public-key"
+    #    mode: 0755
+    #  when: False
 
     # TODO: disable tty
     # add user-data
@@ -256,8 +269,8 @@
 
     ## ---- Setup fstab ----
     # TODO: Switch from shell to copy module using content=''
-    - name: Configure fstab for tmpfs
-      shell: echo 'tmpfs /var/run tmpfs nosuid,nodev 0 0' > {{ INSTALL_ROOT }}/etc/fstab
+    #- name: Configure fstab for tmpfs
+    #  shell: echo 'tmpfs /var/run tmpfs nosuid,nodev 0 0' > {{ INSTALL_ROOT }}/etc/fstab
 
     # ---- Unmount all mounts ----
     - name: Unmount {{ INSTALL_ROOT }}/boot

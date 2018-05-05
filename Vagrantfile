@@ -16,14 +16,6 @@ echo "source env/bin/activate" > ~vagrant/.bash_profile
 echo "cd /vagrant" >> ~vagrant/.bash_profile
 
 
-#mkdir vyos
-#cd vyos
-#git clone https://github.com/hydrajump/vyos-build-ami
-
-#mkdir /files
-#chown ec2-user /files
-
-
 SCRIPT
 
 Vagrant.configure("2") do |config|
