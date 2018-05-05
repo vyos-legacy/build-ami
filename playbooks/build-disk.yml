@@ -23,6 +23,15 @@
     INSTALL_ROOT: /mnt/inst_root
 
   tasks:
+    - name: Install required packages
+      apt:
+        update_cache: yes
+        name:
+          - parted
+          - e2fsprogs
+          - gnupg
+        state: present
+
     - name: Load aufs module
       shell: modprobe aufs
 
@@ -80,26 +89,11 @@
         state: mounted
 
     - name: Read version string from iso packages
-#      shell: cat {{ CD_ROOT }}/live/filesystem.packages | grep ^vyatta-version | awk '{print $2}'
       shell: cat {{ CD_SQUASH_ROOT }}/opt/vyatta/etc/version | awk '{print $2}' | tr + -
       register: version_string
 
     - name: Debug version string as read from ISO
       debug: msg="This is version {{ version_string.stdout }}"
-
-#    - name: Create a disk label
-#      command: parted --script {{ volume_drive }} mklabel msdos
-
-#    - name: Make a root partition using the full disk and optimal alignment
-#      command: parted --script --align optimal {{ volume_drive }} mkpart primary 0% 100%
-
-#    - name: Create a filesystem on root partition
-#      filesystem:
-#        fstype: "{{ ROOT_FSTYPE }}"
-#        device: "{{ ROOT_PARTITION }}"
-
-#    - name: Make {{ volume_drive }} bootable
-#     command: parted --script {{ volume_drive }} set 1 boot
 
     - name: Partition the target drive
       parted:
@@ -168,9 +162,9 @@
 
     ## ---- VyOS configuration ----
     - name: Make sure that config partition marker exists
-      command: touch {{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config
-      args:
-        creates: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config"
+      file:
+        path: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config"
+        state: touch
 
     - name: Copy default config file to config directory
       command: chroot --userspec=root:vyattacfg {{ INSTALL_ROOT }} cp /opt/vyatta/etc/config.boot.default /opt/vyatta/etc/config/config.boot
@@ -222,19 +216,18 @@
         path: "{{ WRITE_ROOT }}/boot/grub"
         state: directory
 
-    # TODO: Check on EC2 what fdisk -l states as /dev/sda or /dev/xvda and maybe
-    # Change this from template to command echo
-    # - name: Configure GRUB device map
-    #   template: src=templates/boot/grub/device.map.j2 dest={{ WRITE_ROOT }}/boot/grub/device.map mode=0644
-    # on ec2 result without template (hd0)  /dev/xvdf change to /dev/xvda
-
     # It is necessary to mount and bind /dev, /proc, /sys and /boot in order to execute grub-install
     # and install GRUB correctly within the {{ volume_drive }} using chroot
+
+    # XXX: ansible mount module requires fstype so it cannot be used for binding an already
+    # mounted location, we get to use mount directly at least for /boot
     - name: Mount and bind /dev /proc /sys and {{ WRITE_ROOT }}/boot to {{ INSTALL_ROOT }}
       shell: mount --bind /dev {{ INSTALL_ROOT }}/dev &&
              mount --bind /proc {{ INSTALL_ROOT }}/proc &&
              mount --bind /sys {{ INSTALL_ROOT }}/sys &&
              mount --bind {{ WRITE_ROOT }} {{ INSTALL_ROOT }}/boot
+      args:
+        warn: no
 
     - name: Install GRUB in the boot sector of {{ volume_drive }}
       command: chroot {{ INSTALL_ROOT }} grub-install --no-floppy --root-directory=/boot {{ volume_drive }}
@@ -252,25 +245,6 @@
         src: templates/persistence.conf
         dest: "{{ WRITE_ROOT }}/persistence.conf"
         mode: 0644
-
-    # Install ec2 init script. This isn't actually used, but left here for easy development of this script.
-    #- name: Copy ec2-fetch-ssh-public-key init script to {{ INSTALL_ROOT }}
-    #  copy:
-    #    src: files/etc/init.d/ec2-fetch-ssh-public-key
-    #    dest: "{{ INSTALL_ROOT }}/etc/init.d/ec2-fetch-ssh-public-key"
-    #    mode: 0755
-    #  when: False
-
-    # TODO: disable tty
-    # add user-data
-
-    ## TODO: ---- MDADM config??? ----
-    # mdadm if no raid shouldn't install-postinst-new L238 be AUTOSTART=false as DAEMON=false
-
-    ## ---- Setup fstab ----
-    # TODO: Switch from shell to copy module using content=''
-    #- name: Configure fstab for tmpfs
-    #  shell: echo 'tmpfs /var/run tmpfs nosuid,nodev 0 0' > {{ INSTALL_ROOT }}/etc/fstab
 
     # ---- Unmount all mounts ----
     - name: Unmount {{ INSTALL_ROOT }}/boot
