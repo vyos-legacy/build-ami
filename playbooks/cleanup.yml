@@ -24,7 +24,6 @@
       ignore_errors: True
       with_items: "{{ ec2_instances.instances }}"
 
-# # KP
     - name: Delete key pair
       ec2_key:
         name: "{{ key_pair_name }}"
@@ -32,38 +31,7 @@
         region: "{{ ec2_region }}"
       ignore_errors: True
 
-# VPC
-    - name: Delete the temporary security group
+    - name: Delete security group
       ec2_group:
-        group_id: "{{ temp_security_group.group_id }}"
         state: absent
-
-    - name: Delete the VPC route table
-      ec2_vpc_route_table:
-        route_table_id: "{{ vpc_route_table.route_table.route_table_id }}"
-        vpc_id: "{{ build_vpc.vpc.id }}"
-        state: absent
-
-    - name: Delete the gateway of the temporary VPC
-      ec2_vpc_igw:
-        region: "{{ ec2_region }}"
-        vpc_id: "{{ build_vpc.vpc.id }}"
-        state: absent
-
-    - name: Delete the VPC subnet
-      ec2_vpc_subnet:
-        region: "{{ ec2_region }}"
-        vpc_id: "{{ build_vpc.vpc.id }}"
-        cidr: 10.0.0.0/16
-        state: absent
-
-    - name: Delete VPC
-      ec2_vpc_net:
-        state: absent
-        name: "{{ placeholder }}"
-        cidr_block: 10.0.0.0/16
-        resource_tags:
-          Type: vyos
-          Name: "{{ placeholder }}"
-        region: "{{ ec2_region }}"
-      ignore_errors: True
+        group_id: "{{ security_group.group_id }}"

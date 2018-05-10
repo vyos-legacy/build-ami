@@ -3,12 +3,7 @@
 # Main entry point in vyos-build-ami playbook
 
 - import_playbook: init.yml
-#- import_playbook: cleanup.yml
 - import_playbook: provision-instance.yml
-#- import_playbook: build-disk.yml
-#- import_playbook: build-ami.yml
+- import_playbook: build-disk.yml
+- import_playbook: build-ami.yml
 - import_playbook: cleanup.yml
-
-
-# ---- Release AMI ----
-# - include: release-ami.yml
