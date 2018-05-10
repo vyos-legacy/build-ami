@@ -166,49 +166,11 @@
         path: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/.vyatta_config"
         state: touch
 
-    - name: Copy default config file to config directory
-      command: chroot --userspec=root:vyattacfg {{ INSTALL_ROOT }} cp /opt/vyatta/etc/config.boot.default /opt/vyatta/etc/config/config.boot
-      args:
-        creates: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot"
-
-    - name: Change permissions on the new config file
-      file:
-        path: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot"
-        mode: 0775
-
-    ### ---- Modify config to meet AWS EC2 AMI requirements ----
-    ### FIXME: This section is not idempotent yet!
-    - name: Add interface eth0 and set address to dhcp
-      command: sed -i '/interfaces {/ a
-               \   ethernet eth0 {\n
-               \       address dhcp\n
-               \   }
-               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
-
-    - name: Add service ssh and disable-password-authentication
-      command: sed -i '/system {/ i
-               service {\n
-               \   ssh {\n
-               \       disable-password-authentication\n
-               \       port 22\n
-               \   }\n}
-               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
-
-    # Should not change to hvc0 because it doesn't work
-    # - name: Change system device console to hvc0
-    #   command: sed -i '/device ttyS0 {/ c\
-    #            \       device hvc0 {
-    #            ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
-
-    - name: Set system host-name to VyOS-AMI
-      command: sed -i '/login {/ i\
-               \   host-name VyOS-AMI
-               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
-
-    - name: Change system login user vyos encrypted-password to '*'
-      command: sed -i '/encrypted-password/ c\
-               \               encrypted-password "*"
-               ' {{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot
+    - name: Copy the default config for EC2 to the installed image
+      template:
+        src: templates/config.boot.default.ec2
+        dest: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot"
+        mode: 0755
 
     ## ---- Install GRUB boot loader ----
     - name: Create GRUB directory
