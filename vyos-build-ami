@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # vyos-build-ami.sh: ansible-playbook wrapper for vyos-build-ami project
-# Copyright 2017 VyOS maintainers and contributors <maintainers@vyos.net>
+# Copyright 2018 VyOS maintainers and contributors <maintainers@vyos.net>
 # Portions copyright 2014 hydrajump <wave@hydrajump.com>
 # Distributed under the terms of the MIT license
 
