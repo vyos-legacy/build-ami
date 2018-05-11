@@ -1,7 +1,7 @@
 VyOS build-ami
 --------------
 
-**NOTE:** You can support the VyOS development by using the official VyOS AMI from the marketplace: https://aws.amazon.com/marketplace/pp/B074KJK4WC
+**NOTE:** You can support VyOS development by using the official VyOS AMI from the marketplace: https://aws.amazon.com/marketplace/pp/B074KJK4WC
 (starting from $50/year).
 
 The official AMIs are built with these exact scripts so if you build one for yourself, your own AMI will be functionally identical to the official ones.
@@ -11,39 +11,31 @@ The official AMIs are built with these exact scripts so if you build one for you
 The build scripts are based on ansible and awscli.
 
 To install and configure awscli, follow the user guide: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html
-Make sure the python module boto also gets installed.
+Make sure the python modules boto, botocore, and boto3 also gets installed.
 
 Ansible is available from the repositories on most Linux distributions.
 
 These scripts and playbooks should work on any Linux system, or, theoretically, on any system supported by ansible and awscli.
 
+At this time Python3 support is limited by its supports by ansible, so it's safer to use Python 2.7.
+
 ## Usage
 
 ```
-./vyos-build-ami.sh <VyOS ISO URL>
+./vyos-build-ami <VyOS ISO URL>
 ```
 
-**NOTE:** At this time the playbooks have some limitations:
-* The argument must be a URL, e.g. http://packages.vyos.net/iso/release/1.1.7/vyos-1.1.7-amd64.iso , local files are not supported
-* There **must** be a GPG signature file for the image in the same dir on the server
-* 1.2.0 beta images are not yet supported
-* No way to specify the region, so make sure you configure it in awscli settings
-
-These limitations will be fixed in the future.
-
-So, for VyOS 1.1.7 the command will be:
-```
-./vyos-build-ami.sh http://packages.vyos.net/iso/release/1.1.7/vyos-1.1.7-amd64.iso
-```
+The baseline code now supports only VyOS >=1.2.0. If you want to build an AMI from VyOS 1.1.x, check out the 1.1.x tag.
 
 ## Operation
 
-Since there is no way to upload a disk image to AWS directly, the playbooks create an Ubuntu instance and run a sequence of commands to create an EBS disk and unpack the
+Since there is no easy way to upload a disk image to AWS directly, the playbooks create a Debian Jessie instance and run a sequence of commands to create an EBS disk and unpack the
 VyOS image to it, emulating the installation procedure.
 
 ## Troubleshooting
 
-**NOTE:** If playbook fails, a medium size instance is left running. Make sure to clean up any leftover instances if you restart the playbook after failures.
+**NOTE:** If playbook fails, it leaves behind a t2.micro instance, an SSH key pair names "vyos-build-ami", and a security group also named "vyos-build-ami".
+If you want to restart the process from the beginning, remove those by hand.
 
 Sometimes playbook tasks fail through no one's fault, for example, SSH timeouts if an instance takes too long to create.
 
