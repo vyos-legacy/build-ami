@@ -89,7 +89,7 @@
         state: mounted
 
     - name: Read version string from iso packages
-      shell: cat {{ CD_SQUASH_ROOT }}/opt/vyatta/etc/version | awk '{print $2}' | tr + -
+      shell: cat {{ CD_SQUASH_ROOT }}/opt/vyatta/etc/version | awk '/Version/ {print $2"-"$3}'
       register: version_string
 
     - name: Debug version string as read from ISO
