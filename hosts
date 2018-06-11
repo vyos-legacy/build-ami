@@ -1,2 +1,5 @@
 [local]
 localhost
+
+[qemu]
+localhost
