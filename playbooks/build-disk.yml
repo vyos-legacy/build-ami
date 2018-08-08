@@ -29,7 +29,7 @@
       uri:
         url: "{{ vyos_iso_url }}.asc"
         dest: "{{ vyos_iso_local }}.asc"
-        status_code: 200,404,403
+        status_code: 200,404,403,304
       register: gpg_uri
 
     - name: Download VyOS ISO release
@@ -79,33 +79,23 @@
     - name: Debug version string as read from ISO
       debug: msg="This is version {{ version_string.stdout }}"
 
-    # ---- Prepare EBS disk ----
-    # All the parted stuff may be replaced when this PR is merged
-    # https://github.com/ansible/ansible-modules-extras/pull/2518
-    - name: Check if EBS disk has already been modified by this playbook
-      shell: parted --script {{ volume_drive }} print || true
-      register: parted_print
-      changed_when: False
+    - name: Create root partition
+      parted:
+        device: "{{ volume_drive }}"
+        label: msdos
+        part_start: 0%
+        part_end: 100%
+        state: present
+        number: 1
 
-    - name: Create a disk label
-      command: parted --script {{ volume_drive }} mklabel msdos
-      when: "parted_print is defined and
-            parted_print.stdout.startswith('Error: {{ volume_drive }}: unrecognised disk label')"
-
-    - name: Make a root partition using the full disk and optimal alignment
-      command: parted --script --align optimal {{ volume_drive }} mkpart primary 0% 100%
-      when: parted_print is defined and
-            parted_print.stdout.find('primary') == -1
+    # call "set 1 boot" multiple times is ok
+    - name: Make {{ volume_drive }} bootable
+      command: parted --script {{ volume_drive }} set 1 boot
 
     - name: Create a filesystem on root partition
       filesystem:
         fstype: "{{ ROOT_FSTYPE }}"
         device: "{{ ROOT_PARTITION }}"
-
-    - name: Make {{ volume_drive }} bootable
-      command: parted --script {{ volume_drive }} set 1 boot
-      when: parted_print is defined and
-            parted_print.stdout.find('boot') == -1
 
     - name: Mount root partition
       mount:
@@ -120,6 +110,12 @@
         path: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/live-rw"
         state: directory
       register: RW_DIR
+
+    - name: Create workdir directory
+      file:
+        path: "{{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/live-workdir"
+        state: directory
+      register: WORK_DIR
 
     - name: Copy squashfs image from ISO to root partition
       command: cp -p {{ SQUASHFS_IMAGE }} {{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/{{ version_string.stdout }}.squashfs
@@ -144,7 +140,7 @@
         name: "{{ INSTALL_ROOT }}"
         src: overlayfs
         fstype: overlayfs
-        opts: "noatime,upperdir={{ RW_DIR.path }},lowerdir={{ READ_ROOT }}"
+        opts: "noatime,upperdir={{ RW_DIR.path }},lowerdir={{ READ_ROOT }},workdir={{ WORK_DIR.path }}"
         state: mounted
 
     # ---- Post image installation tasks ----
