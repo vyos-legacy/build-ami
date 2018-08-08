@@ -83,14 +83,11 @@
       parted:
         device: "{{ volume_drive }}"
         label: msdos
+        flags: [boot]
         part_start: 0%
         part_end: 100%
         state: present
         number: 1
-
-    # call "set 1 boot" multiple times is ok
-    - name: Make {{ volume_drive }} bootable
-      command: parted --script {{ volume_drive }} set 1 boot
 
     - name: Create a filesystem on root partition
       filesystem:
