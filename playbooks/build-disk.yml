@@ -172,6 +172,12 @@
         dest: "{{ INSTALL_ROOT }}/opt/vyatta/etc/config/config.boot"
         mode: 0755
 
+    - name: Copy user-data startup config for EC2 to the installed image
+      template:
+        src: templates/ec2-vyos-init
+        dest: "{{ INSTALL_ROOT }}/etc/init.d/ec2-vyos-init"
+        mode: 0755
+
     ## ---- Install GRUB boot loader ----
     - name: Create GRUB directory
       file:
