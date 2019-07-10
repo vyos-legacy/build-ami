@@ -35,3 +35,4 @@
       ec2_group:
         state: absent
         group_id: "{{ security_group.group_id }}"
+        region: "{{ ec2_region }}"

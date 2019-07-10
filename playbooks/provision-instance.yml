@@ -25,12 +25,14 @@
 
     - name: Find the default VPC
       ec2_vpc_net_facts:
+        region: "{{ ec2_region }}"
         filters:
           isDefault: "true"
       register: vpc_nets
 
     - name: Find the default VPC subnet
       ec2_vpc_subnet_facts:
+        region: "{{ ec2_region }}"
         filters:
           "vpc-id": "{{ vpc_nets.vpcs[0].vpc_id }}"
           defaultForAz: "true"
@@ -54,6 +56,7 @@
     - name: Look up Debian Jessie AMI
       ec2_ami_facts:
         owners: 379101102735
+        region: "{{ ec2_region }}"
         filters:
           name: "debian-jessie-amd64-hvm-*"
           architecture: "x86_64"
