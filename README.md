@@ -6,6 +6,17 @@ VyOS build-ami
 
 The official AMIs are built with these exact scripts so if you build one for yourself, your own AMI will be functionally identical to the official ones.
 
+## Prerequisites
+
+VyOS images built with default `make iso` options *do not* include EC2 autoconfiguration mechanism).
+
+To make an image suitable for an AMI, do this instead:
+
+```
+./configure
+sudo make AWS
+```
+
 ## Requirements
 
 The build scripts are based on ansible and awscli.
