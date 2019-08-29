@@ -9,6 +9,5 @@ verify_ssl = true
 botocore = "*"
 boto3 = "*"
 boto = "*"
-
-[requires]
-python_version = "3.7"
+awscli = "*"
+ansible = "*"
