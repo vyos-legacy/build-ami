@@ -31,6 +31,10 @@ fi
 
 ISO_URL=$1
 
+# Allow boto (2) to connect to new regions that aren't built-in
+# (see https://github.com/boto/boto/issues/3783#issuecomment-422990383)
+export BOTO_USE_ENDPOINT_HEURISTICS=True
+
 # Do the job
 
 cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
