@@ -8,3 +8,4 @@ volume_size: 4
 volume_drive: /dev/xvdf
 ansible_ssh_private_key_file: "{{ key_pair_file }}"
 ansible_host_key_checking: False
+ansible_python_interpreter: python
