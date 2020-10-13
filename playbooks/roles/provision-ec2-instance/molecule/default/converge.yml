@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include provision-ec2-instance"
+      include_role:
+        name: "provision-ec2-instance"

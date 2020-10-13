@@ -1,0 +1,6 @@
+---
+# defaults file for ec2-cleanup
+placeholder: vyos-build-ami
+ec2_region: us-east-1
+key_pair_name: vyos-build-ami
+temp_folder: "{{ playbook_dir }}/files/ssh-keys"

@@ -1,0 +1,65 @@
+---
+# tasks file for build-vyos-ami
+- name: Create a snapshot of the EBS volume
+  ec2_snapshot:
+    region: "{{ ec2_region }}"
+    device_name: "{{ ebs_drive }}"
+    instance_id: "{{ ec2_instance.instances[0].id }}"
+    description: "{{ snapshot_description }}"
+  register: ec2_snap
+
+- name: Stop instance that were previously launched
+  ec2:
+    state: 'stopped'
+    instance_ids: 
+      - "{{ ec2_instance.instances[0].id }}"
+    region: "{{ ec2_region }}"
+    wait: yes
+
+- name: Register AMI from
+  command: aws ec2 register-image
+            --region {{ ec2_region }}
+            --name '{{ ami_name }}'
+            --description '{{ ami_description }}'
+            --architecture {{ ami_architecture }}
+            --root-device-name {{ ami_root_device_name }}
+            --block-device-mappings '[{"DeviceName":"{{ ami_root_device_name }}","Ebs":{"SnapshotId":"{{ ec2_snap.snapshot_id }}"}}]'
+            --virtualization-type {{ ami_virtualization_type }}
+            --sriov-net-support simple
+            --ena-support
+            --output json
+  register: ec2_ami
+
+- debug: msg="{{ (ec2_ami.stdout | from_json).ImageId}}"
+
+- name: Tag the AMI
+  ec2_tag:
+    region: "{{ ec2_region }}"
+    resource: "{{ (ec2_ami.stdout | from_json).ImageId }}"
+    tags:
+      iso_url: "{{ iso }}"
+      iso: "{{ iso | basename }}"
+    # vyos-build-ami-git-rev: "{{ local_git_revision.stdout }}"
+      build_user: "{{ ansible_user_id }}"
+      build_controller_host: "{{ ansible_hostname }}"
+
+# - name: Register AMI from {{ ec2_instance.instances[0].id }}
+#   ec2_ami:
+#     instance_id: "{{ ec2_instance.instances[0].id }}"
+#     wait: yes
+#     name: "{{ ami_name }}"
+#     region: "{{ ec2_region }}"
+#     description: "{{ ami_description }}"
+#     architecture: "{{ ami_architecture }}"
+#     root_device_name: "{{ ami_root_device_name }}"
+#     device_mapping:
+#       - device_name: "{{ ami_root_device_name }}"
+#         snapshot_id: "{{ ec2_snap.snapshot_id }}"
+#     tags:
+#       Name: "{{ ami_name }}"
+#       iso_url: "{{ iso }}"
+#       iso: "{{ iso | basename }}"
+#       build_user: "{{ ansible_user_id }}"
+#       build_controller_host: "{{ ansible_hostname }}"
+
+
