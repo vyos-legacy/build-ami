@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include build-vyos-ami"
+      include_role:
+        name: "build-vyos-ami"

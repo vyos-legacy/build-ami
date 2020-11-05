@@ -5,56 +5,5 @@
   connection: local
   gather_facts: False
 
-  vars:
-    version_string: "{{ hostvars[groups['ec2'][0]]['version_string']['stdout'] }}"
-    snapshot_description: VyOS AMI (HVM) {{ version_string }}
-
-    ami_name: VyOS (HVM) {{ version_string }}
-    ami_description: The VyOS AMI is an EBS-backed, HVM image. It is an open-source Linux-based network operating system that provides software-based network routing, firewall, and VPN functionality.
-    ami_architecture: x86_64
-    ami_virtualization_type: hvm
-    ami_root_device_name: /dev/xvda
-
-  tasks:
-    - name: Create a snapshot of the EBS volume
-      ec2_snapshot:
-        region: "{{ ec2_region }}"
-        device_name: /dev/sdf
-        instance_id: "{{ ec2_instance.instances[0].id }}"
-        description: "{{ snapshot_description }}"
-      register: ec2_snap
-
-    # Use aws-cli register-image to create an Amazon EBS-backed AMI from a
-    # snapshot of a root device volume. This can't be done with ansible (as
-    # of version 2.1.1.0)
-    # TODO: handle case where AMI name already exists
-    - name: Register AMI from
-      command: aws ec2 register-image
-               --region {{ ec2_region }}
-               --name '{{ ami_name }}'
-               --description '{{ ami_description }}'
-               --architecture {{ ami_architecture }}
-               --root-device-name {{ ami_root_device_name }}
-               --block-device-mappings '[{"DeviceName":"{{ ami_root_device_name }}","Ebs":{"SnapshotId":"{{ ec2_snap.snapshot_id }}"}}]'
-               --virtualization-type {{ ami_virtualization_type }}
-               --sriov-net-support simple
-               --ena-support
-               --output json
-      register: ec2_ami
-
-    - debug: msg="{{ (ec2_ami.stdout | from_json).ImageId}}"
-
-    - name: Tag the AMI
-      ec2_tag:
-        region: "{{ ec2_region }}"
-        resource: "{{ (ec2_ami.stdout | from_json).ImageId }}"
-        tags:
-          iso_url: "{{ iso }}"
-          iso: "{{ iso | basename }}"
-        # vyos-build-ami-git-rev: "{{ local_git_revision.stdout }}"
-          build_user: "{{ ansible_user_id }}"
-          build_controller_host: "{{ ansible_hostname }}"
-
-    - name: Find local git revision
-      command: git rev-parse HEAD
-      register: local_git_revision
+  roles:
+    - build-vyos-ami

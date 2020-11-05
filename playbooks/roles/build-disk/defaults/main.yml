@@ -1,0 +1,17 @@
+---
+# defaults file for build-disk
+vyos_iso_url: "{{ iso }}"
+vyos_iso_local: /tmp/vyos.iso
+vyos_key_url: http://packages.vyos.net/vyos-release.gpg
+vyos_key_local: /tmp/vyos-release.gpg
+CD_ROOT: /mnt/cdrom
+CD_SQUASH_ROOT: /mnt/cdsquash
+SQUASHFS_IMAGE: "{{ CD_ROOT }}/live/filesystem.squashfs"
+
+ROOT_FSTYPE: ext4
+ROOT_PARTITION: "{{ volume_drive }}1" # The install partition
+volume_size: 4
+volume_drive: /dev/xvdf
+WRITE_ROOT: /mnt/wroot
+READ_ROOT: /mnt/squashfs
+INSTALL_ROOT: /mnt/inst_root

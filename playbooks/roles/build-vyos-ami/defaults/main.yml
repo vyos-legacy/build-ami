@@ -1,0 +1,4 @@
+---
+# defaults file for build-vyos-ami
+ec2_region: us-east-1
+ebs_drive: /dev/sdf
