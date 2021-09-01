@@ -2,10 +2,10 @@ key_pair_name: vyos-build-ami
 ec2_region: us-east-1
 temp_folder: "{{ playbook_dir }}/files/ssh-keys"
 key_pair_file: "{{ temp_folder }}/{{ key_pair_name }}.pem"
-instance_type: t2.micro
+instance_type: t3.micro
 placeholder: vyos-build-ami
 volume_size: 4
-volume_drive: /dev/xvdf
+volume_drive: /dev/nvme1n1
 ansible_ssh_private_key_file: "{{ key_pair_file }}"
 ansible_host_key_checking: False
 ansible_python_interpreter: python

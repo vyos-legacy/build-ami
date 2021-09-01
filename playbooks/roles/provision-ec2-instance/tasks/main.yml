@@ -94,7 +94,7 @@
     - AWS
 
 #Look up the AMI id to use based on a search
-- name: Look up Debian Jessie AMI
+- name: Look up Debian Stretch AMI
   ec2_ami_facts:
     owners: "{{ base_image.debian_aws_account_id }}"
     region: "{{ ec2_region }}"
@@ -109,13 +109,18 @@
     - aws
     - AWS
 
+- name: Now get the latest one
+  set_fact:
+    latest_ami: >
+      {{ debian_ami.images | sort(attribute='creation_date') | last }}
+
 #---- Launch EC2 instance ----
 - name: Launch an EC2 instance
   ec2:
     key_name: "{{ key_pair_name }}"
     assign_public_ip: True
     vpc_subnet_id: "{{ vpc_subnets.subnets[0].subnet_id }}"
-    image: "{{ debian_ami.images[0].image_id }}"
+    image: "{{ latest_ami.image_id }}"
     instance_type: "{{ instance_type }}"
     region: "{{ ec2_region }}"
     group_id: "{{ security_group.group_id  }}"
@@ -124,7 +129,7 @@
       Name: "{{ placeholder }}"
       Type: "VyOS"
     volumes:
-      - device_name: /dev/sdf
+      - device_name: xvdf
         volume_type: gp2
         volume_size: "{{ volume_size }}"
         delete_on_termination: True

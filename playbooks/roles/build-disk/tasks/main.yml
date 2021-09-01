@@ -27,9 +27,6 @@
       - gnupg
     state: present
 
-- name: Load aufs module
-  shell: modprobe aufs
-
 # ---- Set up the specified ISO release ----
 
 # - name: Fetch VyOS ISO GPG signature
@@ -149,8 +146,8 @@
   mount:
     name: "{{ INSTALL_ROOT }}"
     src: none
-    fstype: aufs
-    opts: "noatime,dirs={{ RW_DIR.path }}=rw:{{ READ_ROOT }}=rr"
+    fstype: overlay
+    opts: "noatime,upperdir={{ RW_DIR.path }},lowerdir={{ READ_ROOT }},workdir={{ WRITE_ROOT }}/boot/{{ version_string.stdout }}/work/work"
     state: mounted
 
 # ---- Post image installation tasks ----
