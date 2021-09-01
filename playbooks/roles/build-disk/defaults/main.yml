@@ -7,6 +7,7 @@ vyos_key_local: /tmp/vyos-release.gpg
 CD_ROOT: /mnt/cdrom
 CD_SQUASH_ROOT: /mnt/cdsquash
 SQUASHFS_IMAGE: "{{ CD_ROOT }}/live/filesystem.squashfs"
+temp_ssm: "/tmp/ssm"
 
 ROOT_FSTYPE: ext4
 ROOT_PARTITION: "{{ volume_drive }}p1" # The install partition
