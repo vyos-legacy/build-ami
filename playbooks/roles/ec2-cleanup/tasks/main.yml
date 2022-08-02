@@ -1,7 +1,7 @@
 ---
 # tasks file for ec2-cleanup
 - name: Grab instance IDs
-  ec2_instance_facts:
+  ec2_instance_info:
     filters:
       instance-state-name:  [ "shutting-down", "stopping", "stopped","running" ] 
       "tag:Name": "vyos-build-ami"
